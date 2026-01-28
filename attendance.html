@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트 출석부</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Noto+Serif+KR:wght@700&display=swap" rel="stylesheet">
+    <style>
+        /* [기본 설정] */
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Noto Sans KR', sans-serif; 
+            background-color: #f4f6f9; 
+            display: flex; flex-direction: column; align-items: center; 
+            padding: 40px 20px; min-height: 100vh; margin: 0;
+        }
+
+        /* 홈 버튼 */
+        .home-btn {
+            position: fixed; top: 20px; left: 20px; width: 50px; height: 50px;
+            background-color: #0b2a4a; color: white; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            text-decoration: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            font-size: 24px; z-index: 9999;
+        }
+
+        /* 입력 패널 (컨트롤 박스) */
+        .input-panel {
+            background: white; padding: 30px; border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            max-width: 900px; width: 100%;
+            margin-bottom: 50px; text-align: center; border-top: 5px solid #0b2a4a;
+        }
+
+        /* 입력 폼 디자인 */
+        .info-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+        .info-input { 
+            padding: 12px; border: 1px solid #dee2e6; border-radius: 5px; 
+            font-size: 1rem; flex: 1; min-width: 150px;
+        }
+        textarea {
+            width: 100%; height: 150px; padding: 15px; 
+            border: 2px solid #ced4da; border-radius: 10px;
+            font-size: 1.1rem; line-height: 1.8; font-family: monospace;
+            background-color: #fff; margin-bottom: 15px;
+        }
+        
+        /* 버튼 스타일 */
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        .btn {
+            padding: 12px 20px; border: none; border-radius: 8px; 
+            font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s;
+            color: white; flex: 1; min-width: 120px;
+        }
+        .btn-gen { background-color: #0b2a4a; flex: 2; } 
+        .btn-gen:hover { background-color: #1a3b5c; }
+        .btn-add-blank { background-color: #1098ad; } 
+        .btn-print { background-color: #495057; } 
+        .btn-clear { background-color: #fa5252; max-width: 100px; } 
+
+        /* [핵심] A4 용지 스타일 */
+        .sheet {
+            background: white; 
+            width: 210mm; 
+            height: 297mm; /* A4 높이 고정 */
+            padding: 20mm;
+            margin-bottom: 30px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            border: 1px solid #dce0e3; 
+            display: flex; 
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* 페이지 번호 */
+        .page-num {
+            position: absolute; bottom: 10mm; left: 0; width: 100%;
+            text-align: center; font-size: 12px; color: #888;
+        }
+
+        /* 삭제 버튼 */
+        .row-del-btn {
+            background: #ffc9c9; border: 1px solid #fa5252; cursor: pointer; color: #c92a2a;
+            font-weight: bold; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;
+            white-space: nowrap; 
+        }
+        .row-del-btn:hover { background: #fa5252; color: white; }
+
+        /* [인쇄 시 적용 스타일] */
+        @page { size: A4; margin: 0; }
+        @media print {
+            body { background: white; padding: 0; }
+            .input-panel, .home-btn { display: none !important; } 
+            .sheet { 
+                margin: 0; box-shadow: none; border: none;
+                page-break-after: always; 
+            }
+            .no-print { display: none !important; } 
+        }
+
+        /* 표 디자인 */
+        .doc-header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+        .doc-title { font-family: 'Noto Serif KR', serif; font-size: 2.2rem; font-weight: bold; margin-bottom: 10px; }
+        .doc-meta { 
+            display: flex; justify-content: space-between; font-size: 1.1rem; 
+            margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; 
+        }
+        
+        .roster-table { width: 100%; border-collapse: collapse; margin-top: 5px; table-layout: fixed; }
+        .roster-table th, .roster-table td { border: 1px solid #333; padding: 6px 5px; text-align: center; vertical-align: middle; }
+        .roster-table th { background-color: #f1f3f5; height: 35px; font-weight: bold; font-size: 1rem; }
+        .roster-table td { height: 40px; font-size: 1rem; }
+        
+        /* 컬럼 너비 조정 */
+        .col-del { width: 60px; } 
+        .col-no { width: 40px; }
+        .col-dept { width: 160px; }
+        .col-id { width: 110px; }
+        .col-name { width: 100px; }
+        .col-sign { } 
+
+        /* 출력 영역 컨테이너 */
+        #outputContainer { display: none; flex-direction: column; align-items: center; width: 100%; }
+
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="home-btn">🏠</a>
+
+    <div class="input-panel">
+        <h2 style="margin-bottom:15px; color:#0b2a4a;">✍️ 스마트 출석부</h2>
+        
+        <p style="text-align:left; background:#e7f5ff; padding:15px; border-radius:10px; margin-bottom:20px; color:#084298;">
+            <strong>[1. 입력]</strong> 행사 정보와 명단을 입력하세요.<br>
+            ※ 타과생은 학과명을 같이 적으세요. (예: <strong>경영학과</strong> 20240001 홍길동)<br>
+            ※ 하단에 <strong>A4 용지 모양</strong>으로 미리보기가 생성됩니다.<br>
+            <strong>[2. 인쇄]</strong> '명단 적용' 후 '인쇄하기'를 누르세요.
+        </p>
+
+        <div class="info-row">
+            <input type="text" id="eventName" class="info-input" placeholder="행사명 (예: 이란어과 말하기 대회)">
+            <input type="text" id="eventDate" class="info-input" placeholder="일시">
+            <input type="text" id="eventPlace" class="info-input" placeholder="장소 (예: 본관 320호)">
+        </div>
+
+        <textarea id="inputText" placeholder="명단을 입력하세요 (예: 20260001 김철수)"></textarea>
+
+        <div class="btn-group">
+            <button class="btn btn-clear" onclick="clearText()">초기화</button>
+            <button class="btn btn-gen" onclick="parseAndRender()">🔄 1. 명단 적용 (A4 생성)</button>
+            <button class="btn btn-add-blank" onclick="addBlankData(5)">➕ 2. 빈칸 5줄 추가</button>
+        </div>
+        
+        <div class="btn-group" style="margin-top: 15px; border-top: 1px dashed #ced4da; padding-top: 15px;">
+            <button class="btn btn-print" onclick="printPage()">🖨️ 인쇄하기</button>
+        </div>
+    </div>
+
+    <div id="outputContainer"></div>
+
+    <script>
+        // 한 페이지당 줄 수 20명
+        const ROWS_PER_PAGE = 20;
+
+        let globalDataList = [];
+
+        window.onload = function() {
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}.${today.getMonth()+1}.${today.getDate()}`;
+            document.getElementById('eventDate').value = dateStr;
+        };
+
+        // [수정] 인쇄 직전에만 제목을 바꾸는 함수
+        function printPage() {
+            const eventName = document.getElementById('eventName').value.trim();
+            if(eventName) {
+                // 행사명이 있으면 잠시 문서 제목을 바꿈 (파일명을 위해)
+                document.title = eventName;
+            } else {
+                document.title = "스마트 출석부";
+            }
+            window.print();
+        }
+
+        // [1] 텍스트 -> 데이터 파싱 후 그리기
+        function parseAndRender() {
+            const raw = document.getElementById('inputText').value;
+            globalDataList = []; // 초기화
+
+            if(raw.trim()) {
+                const lines = raw.split('\n');
+                lines.forEach(line => {
+                    if(!line.trim()) return;
+                    
+                    let dept = "페르시아어·이란학과"; 
+                    let id = "";
+                    let name = "";
+                    let tempLine = line;
+
+                    // 학번 추출
+                    const idMatch = tempLine.match(/\d{5,}/);
+                    if(idMatch) {
+                        id = idMatch[0];
+                        tempLine = tempLine.replace(id, ""); 
+                    }
+
+                    // 학과명 추출
+                    const deptMatch = tempLine.match(/[가-힣]+(학과|어과|전공)/);
+                    if(deptMatch) {
+                        dept = deptMatch[0];
+                        tempLine = tempLine.replace(dept, ""); 
+                    }
+
+                    // 이름 추출
+                    const nameMatch = tempLine.match(/[가-힣a-zA-Z]+/);
+                    if(nameMatch) {
+                        name = nameMatch[0];
+                    }
+
+                    if(!id && !name) name = line.trim();
+
+                    globalDataList.push({ dept, id, name });
+                });
+            }
+            
+            renderPages(); // 화면에 그리기
+        }
+
+        // [2] 빈칸 데이터 추가
+        function addBlankData(count) {
+            for(let i=0; i<count; i++) {
+                // 학과도 공란으로 추가
+                globalDataList.push({ dept: "", id: "", name: "" });
+            }
+            renderPages(); 
+        }
+
+        // [3] 데이터 삭제
+        function deleteItem(index) {
+            globalDataList.splice(index, 1); 
+            renderPages(); 
+        }
+
+        // 페이지(A4) 렌더링 함수
+        function renderPages() {
+            const container = document.getElementById('outputContainer');
+            container.innerHTML = "";
+            container.style.display = 'flex';
+
+            const title = document.getElementById('eventName').value || "행사 출석부";
+            const date = document.getElementById('eventDate').value;
+            const place = document.getElementById('eventPlace').value;
+
+            // 페이지 수 계산
+            const totalPages = Math.ceil(globalDataList.length / ROWS_PER_PAGE) || 1;
+
+            for (let page = 0; page < totalPages; page++) {
+                const start = page * ROWS_PER_PAGE;
+                const end = start + ROWS_PER_PAGE;
+                const pageData = globalDataList.slice(start, end);
+
+                const sheet = document.createElement('div');
+                sheet.className = 'sheet';
+
+                // 헤더 생성
+                let headerHTML = "";
+                if (page === 0) {
+                    headerHTML = `
+                        <div class="doc-header">
+                            <div class="doc-title">${title}</div>
+                            <div class="doc-meta">
+                                <span>일시: ${date}</span>
+                                <span>장소: ${place}</span>
+                            </div>
+                        </div>`;
+                } else {
+                    headerHTML = `
+                        <div class="doc-header" style="border-bottom:1px solid #ccc; padding-bottom:5px; margin-bottom:10px;">
+                            <div class="doc-title" style="font-size:1.2rem;">${title} (계속)</div>
+                        </div>`;
+                }
+
+                // 테이블 생성
+                let rowsHTML = "";
+                pageData.forEach((item, idx) => {
+                    const realIndex = start + idx; 
+                    rowsHTML += `
+                        <tr>
+                            <td class="no-print">
+                                <button class="row-del-btn" onclick="deleteItem(${realIndex})">삭제</button>
+                            </td>
+                            <td>${realIndex + 1}</td>
+                            <td>${item.dept}</td>
+                            <td>${item.id}</td>
+                            <td style="font-weight:bold;">${item.name}</td>
+                            <td></td>
+                        </tr>
+                    `;
+                });
+
+                sheet.innerHTML = `
+                    ${headerHTML}
+                    <table class="roster-table">
+                        <thead>
+                            <tr>
+                                <th class="col-del no-print">관리</th> 
+                                <th class="col-no">No</th>
+                                <th class="col-dept">학과/전공</th>
+                                <th class="col-id">학번</th>
+                                <th class="col-name">성명</th>
+                                <th class="col-sign">서명</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHTML}
+                        </tbody>
+                    </table>
+                    <div class="page-num">- ${page + 1} / ${totalPages} -</div>
+                `;
+
+                container.appendChild(sheet);
+            }
+        }
+
+        // 초기화
+        function clearText() {
+            if(confirm('모든 입력 내용을 지우시겠습니까?')) {
+                document.getElementById('inputText').value = '';
+                document.getElementById('eventName').value = '';
+                document.getElementById('eventPlace').value = '';
+                
+                // [수정] 제목도 기본값으로 초기화
+                document.title = "스마트 출석부";
+                
+                globalDataList = [];
+                renderPages();
+                
+                // 화면 초기화 시 결과창 숨김
+                document.getElementById('outputContainer').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

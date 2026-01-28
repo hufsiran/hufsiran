@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>페르시아어·이란학과 조교 근무표 생성기</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; background-color: #f1f3f5; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
+        /* 홈 버튼 추가 */
+        .home-btn {
+            position: fixed; top: 20px; left: 20px; width: 50px; height: 50px;
+            background-color: #0b2a4a; color: white; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            text-decoration: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            font-size: 24px; z-index: 9999; transition: transform 0.2s;
+        }
+        .home-btn:hover { transform: scale(1.1); }
+
+        /* 상단 메인 컨트롤 */
+        .top-controls { margin-bottom: 20px; }
+        .main-tabs { display: flex; gap: 10px; width: 600px; }
+        .main-tab-btn { 
+            flex: 1; padding: 15px; font-size: 1.4rem; font-family: 'Jua'; border: none; border-radius: 15px; cursor: pointer; 
+            background: #dee2e6; color: #868e96; transition: 0.2s; 
+        }
+        .main-tab-btn.active { background: #339af0; color: white; box-shadow: 0 4px 10px rgba(51, 154, 240, 0.3); transform: translateY(-2px); }
+
+        /* 레이아웃 */
+        .container { display: flex; gap: 20px; width: 100%; max-width: 1800px; align-items: flex-start; display: none; }
+        .container.active { display: flex; }
+
+        .sidebar { width: 340px; display: flex; flex-direction: column; gap: 20px; flex-shrink: 0; }
+        .main-content { flex: 1; display: flex; flex-direction: column; gap: 20px; align-items: center; }
+
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; box-sizing: border-box; }
+        
+        /* 가이드 카드 */
+        .guide-card { background-color: #e7f5ff; border: 1px solid #74c0fc; }
+        .guide-title { font-size: 1.1rem; font-weight: bold; color: #1971c2; margin-bottom: 10px; font-family: 'Jua'; }
+        .guide-text { font-size: 0.85rem; color: #343a40; line-height: 1.6; }
+        .guide-text strong { color: #1864ab; }
+        
+        h2 { margin-top: 0; color: #343a40; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; font-family: 'Jua'; }
+        
+        /* 입력 폼 */
+        .input-header { display: flex; font-size: 0.8rem; color: #868e96; margin-bottom: 5px; padding-left: 5px; }
+        .input-group { display: flex; gap: 5px; margin-bottom: 10px; align-items: center; }
+        
+        input[type="text"], input[type="number"] { padding: 8px; border: 1px solid #ced4da; border-radius: 5px; width: 100%; font-family: inherit; }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        select { padding: 8px; border: 1px solid #ced4da; border-radius: 5px; }
+        button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-family: 'Jua'; font-weight: bold; transition: 0.2s; }
+        
+        .btn-add { background: #4dabf7; color: white; white-space: nowrap; }
+        .btn-add:hover { background: #339af0; }
+        .btn-gen { background: #51cf66; color: white; font-size: 1.1rem; width: 100%; margin-top: 10px; padding: 12px; }
+        .btn-gen:hover { background: #40c057; }
+        .btn-del { background: #ff6b6b; color: white; padding: 4px 8px; font-size: 0.8rem; }
+
+        /* 조교 리스트 */
+        .ta-list { list-style: none; padding: 0; margin: 0; }
+        .ta-item { display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; padding: 10px; margin-bottom: 5px; border-radius: 5px; cursor: pointer; border: 2px solid transparent; }
+        .ta-item.active { border-color: #4dabf7; background: #e7f5ff; }
+        .ta-info { font-size: 0.85rem; color: #495057; margin-top: 5px; line-height: 1.4; }
+        .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; color: white; margin-left: 5px; font-family: 'Jua'; }
+        .badge-grad { background: #7950f2; }
+        .badge-und { background: #fab005; }
+
+        /* 게이지 바 */
+        .progress-bg { background: #e9ecef; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 5px; display: flex; }
+        .bar-prev { background-color: #adb5bd; height: 100%; transition: width 0.3s; }
+        .bar-curr { background-color: #339af0; height: 100%; transition: width 0.3s; }
+        .bar-over { background-color: #fa5252; }
+
+        /* 서브 탭 */
+        .tab-menu { display: flex; gap: 10px; margin-bottom: 15px; width: 100%; }
+        .tab-btn { flex: 1; background: #e9ecef; color: #868e96; padding: 10px; font-family: 'Jua'; font-size: 1rem; }
+        .tab-btn.active { background: #228be6; color: white; }
+        .tab-btn.holiday-mode.active { background: #fa5252; color: white; }
+
+        /* A4 가로 미리보기 */
+        .a4-preview {
+            width: 1123px; min-height: 794px;
+            background: white; padding: 40px 50px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: space-between; text-align: center;
+        }
+
+        .print-header { margin-bottom: 10px; }
+        .ph-title-1 { font-size: 1.4rem; font-weight: bold; color: #495057; margin-bottom: 5px; }
+        .ph-title-2 { font-size: 2.5rem; font-weight: bold; color: #212529; margin-bottom: 10px; font-family: 'Jua'; letter-spacing: -1px; }
+        .ph-info { font-size: 1.2rem; color: #495057; font-weight: bold; margin-bottom: 10px; }
+        .ph-date { font-size: 1.2rem; color: #495057; font-weight: bold; border: 2px solid #343a40; display: inline-block; padding: 5px 30px; border-radius: 30px; }
+
+        /* 테이블 */
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 10px; border: 2px solid #343a40; }
+        th, td { border: 1px solid #dee2e6; vertical-align: middle; padding: 5px; font-size: 1rem; cursor: pointer; }
+        
+        .schedule-table th { height: 50px; }
+        .schedule-table thead th { background: #f1f3f5; color: #343a40; font-weight: bold; border-bottom: 2px solid #343a40; font-family: 'Jua'; font-size: 1.2rem; }
+        
+        .calendar-table th { background: #f1f3f5; color: #343a40; font-weight: bold; border-bottom: 2px solid #343a40; font-family: 'Jua'; font-size: 1.3rem; height: 45px; }
+        .calendar-table td { height: 90px; vertical-align: top; position: relative; }
+
+        .date-num { font-weight: bold; font-size: 1.2rem; display: block; margin-bottom: 5px; text-align: left; padding-left: 5px; }
+        .sat { color: #1c7ed6; }
+        .sun { color: #f03e3e; }
+
+        .cell-impossible { 
+            background-color: #ffc9c9 !important; 
+            color: #c92a2a; 
+            font-weight: bold; 
+            text-align: center; 
+        }
+
+        .cell-lunch { background-color: #e9ecef; color: #868e96; pointer-events: none; font-size: 0.9rem; font-weight: bold; letter-spacing: 5px; }
+        .cell-holiday { background-color: #fff5f5; }
+        .cell-holiday .date-num { color: #f03e3e; }
+        .cell-holiday::after { content: "휴일"; color: #f03e3e; font-size: 1rem; font-weight: bold; display: block; margin-top: 20px; }
+        .cell-assigned { font-weight: 800; color: black; font-size: 1.1rem; }
+        .ta-badge { display: block; margin: 5px auto; padding: 5px; border-radius: 5px; font-weight: 800; font-size: 1.2rem; color: black; width: 90%; }
+
+        .print-footer { border-top: 2px solid #343a40; padding-top: 15px; }
+        .pf-title { font-family: 'Jua'; font-size: 1.3rem; margin-bottom: 10px; display: block; color: #212529; text-align: left; }
+        .ta-name-box { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px; line-height: 1.6; font-size: 1.1rem; border: 1px solid #e9ecef; text-align: center; font-weight: 500; }
+        .contact-info { display: flex; justify-content: space-between; font-weight: bold; font-size: 1rem; color: #495057; }
+        
+        .tip-box { background: #fff9db; padding: 10px; border-radius: 5px; font-size: 0.85rem; color: #495057; margin-bottom: 10px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+<a href="index.html" title="메인으로 이동" class="home-btn">🏠</a>
+
+<div class="top-controls">
+    <div class="main-tabs">
+        <button class="main-tab-btn active" onclick="switchMainMode('semester')">🏫 학기 중 근무표</button>
+        <button class="main-tab-btn" onclick="switchMainMode('vacation')">🏖️ 방학 중 근무표</button>
+    </div>
+</div>
+
+<div id="semesterContainer" class="container active">
+    <div class="sidebar">
+        <div class="card guide-card">
+            <div class="guide-title">📘 사용 가이드</div>
+            <div class="guide-text">
+                <strong>1. 조교 등록 (핵심!)</strong><br>
+                이름, 구분, 목표 시간 입력 후 추가.<br>
+                <strong>[누적] 작성법:</strong> 첫 달 0, 이후 전달 누적시간 입력. (진도 느린 사람 우선 배정)<br><br>
+                <strong>2. 스케줄 입력</strong><br>
+                조교 선택 → 시간표 클릭 ('불가' 표시)<br><br>
+                <strong>3. 생성 및 저장</strong><br>
+                ⚙️ 자동 배정 → 💾 이미지 저장
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>👥 학기 조교 등록</h2>
+            <div class="input-header">
+                <span style="flex:2">이름</span>
+                <span style="flex:1">구분</span>
+                <span style="flex:1">목표</span>
+                <span style="flex:1">누적</span>
+                <span style="width:50px"></span>
+            </div>
+            <div class="input-group">
+                <input type="text" id="newNameSem" placeholder="이름" style="flex:2">
+                <select id="newTypeSem" style="flex:1">
+                    <option value="grad">대학원</option>
+                    <option value="under">학부생</option>
+                </select>
+                <input type="number" id="newTargetSem" value="100" placeholder="목표" style="flex:1">
+                <input type="number" id="newPrevSem" value="0" placeholder="누적" style="flex:1">
+                <button class="btn-add" onclick="addSemAssistant()">추가</button>
+            </div>
+            <ul id="taListSemester" class="ta-list"></ul>
+        </div>
+
+        <div class="card">
+            <h2>📅 문구 설정</h2>
+            <label style="font-size:0.9rem; font-weight:bold;">년/월</label>
+            <input type="text" id="semTitleDate" value="2026년 03월" class="live-text" data-target="dispSemTitle">
+            <label style="font-size:0.9rem; font-weight:bold;">근무 기간</label>
+            <input type="text" id="semPeriod" value="2026.03.02 - 2026.06.21" class="live-text" data-target="dispSemPeriod">
+        </div>
+
+        <div class="card">
+            <button class="btn-gen" onclick="generateSemester()">⚙️ 학기 근무표 배정</button>
+            <button class="btn-gen" style="background-color: #339af0; margin-top: 10px;" onclick="downloadImage('semester')">💾 근무표 이미지로 저장</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="tab-menu" style="max-width: 1123px;">
+            <button class="tab-btn active" id="btnSemInput" onclick="setSubMode('semester', 'input')">1. 불가능 시간 체크</button>
+            <button class="tab-btn" id="btnSemView" onclick="setSubMode('semester', 'view')">2. 결과 확인</button>
+        </div>
+        <div id="msgSemester" class="tip-box" style="max-width: 1123px; width: 100%;">조교 선택 후 시간표를 클릭하여 '불가(X)' 체크</div>
+
+        <div id="semesterA4" class="a4-preview">
+            <div class="print-header">
+                <div class="ph-title-1" id="dispSemTitle">2026년 03월</div>
+                <div class="ph-title-2">페르시아어·이란학과 학과장실 조교 근무표</div>
+                <div class="ph-date" id="dispSemPeriod">2026.03.02 - 2026.06.21</div>
+            </div>
+
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th style="width: 70px;">교시</th>
+                        <th style="width: 140px;">시간</th>
+                        <th>월</th>
+                        <th>화</th>
+                        <th>수</th>
+                        <th>목</th>
+                        <th>금</th>
+                    </tr>
+                </thead>
+                <tbody id="semesterBody"></tbody>
+            </table>
+
+            <div class="print-footer">
+                <span class="pf-title">📌 조교 명단</span>
+                <div class="ta-name-box" id="taBoxSemester"></div>
+                <div class="contact-info">
+                    <span>Tel. 02-2173-2303</span>
+                    <span>Office. 본관320호</span>
+                    <span>E-mail. hufsiran@gmail.com</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="vacationContainer" class="container">
+    <div class="sidebar">
+        <div class="card guide-card">
+            <div class="guide-title">📘 사용 가이드</div>
+            <div class="guide-text">
+                <strong>1. 조교 등록 (핵심!)</strong><br>
+                이름, 구분, 목표 시간 입력 후 추가.<br>
+                <strong>[누적] 작성법:</strong> 첫 달 0, 이후 전달 누적시간 입력. (진도 느린 사람 우선 배정)<br><br>
+                <strong>2. 스케줄 입력</strong><br>
+                방학은 <strong>'공통 휴일'</strong> 먼저 체크 후,<br>
+                조교 선택 → 달력 클릭 ('불가' 표시)<br><br>
+                <strong>3. 생성 및 저장</strong><br>
+                ⚙️ 자동 배정 → 💾 이미지 저장
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>👥 방학 조교 등록</h2>
+            <div class="input-header">
+                <span style="flex:2">이름</span>
+                <span style="flex:1">구분</span>
+                <span style="flex:1">목표</span>
+                <span style="flex:1">누적</span>
+                <span style="width:50px"></span>
+            </div>
+            <div class="input-group">
+                <input type="text" id="newNameVac" placeholder="이름" style="flex:2">
+                <select id="newTypeVac" style="flex:1">
+                    <option value="grad">대학원</option>
+                    <option value="under">학부생</option>
+                </select>
+                <input type="number" id="newTargetVac" value="50" placeholder="목표" style="flex:1">
+                <input type="number" id="newPrevVac" value="0" placeholder="누적" style="flex:1">
+                <button class="btn-add" onclick="addVacAssistant()">추가</button>
+            </div>
+            <ul id="taListVacation" class="ta-list"></ul>
+        </div>
+
+        <div class="card">
+            <h2>📅 달력 설정</h2>
+            <div class="input-group">
+                <input type="number" id="vacYear" value="2026" style="width: 80px;">
+                <span style="font-weight:bold">년</span>
+                <input type="number" id="vacMonth" value="7" style="width: 60px;">
+                <span style="font-weight:bold">월</span>
+                <button class="btn-add" onclick="renderCalendar()">갱신</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <button class="btn-gen" onclick="generateVacation()">⚙️ 방학 근무표 배정</button>
+            <button class="btn-gen" style="background-color: #339af0; margin-top: 10px;" onclick="downloadImage('vacation')">💾 근무표 이미지로 저장</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="tab-menu" style="max-width: 1123px;">
+            <button class="tab-btn holiday-mode active" id="btnVacHoliday" onclick="setSubMode('vacation', 'holiday')">1. 공통 휴일 체크</button>
+            <button class="tab-btn" id="btnVacInput" onclick="setSubMode('vacation', 'input')">2. 개인 불가 체크</button>
+            <button class="tab-btn" id="btnVacView" onclick="setSubMode('vacation', 'view')">3. 결과 확인</button>
+        </div>
+        <div id="msgVacation" class="tip-box" style="max-width: 1123px; width: 100%;">달력에서 설날, 공휴일 등을 클릭하여 휴일 지정</div>
+
+        <div id="vacationA4" class="a4-preview">
+            <div class="print-header">
+                <div class="ph-title-1" id="dispVacTitle">2026년 07월</div>
+                <div class="ph-title-2">페르시아어·이란학과 학과장실 조교 근무표</div>
+                <div class="ph-info">(근무시간: 10:00 - 15:00 / 점심시간: 12:00 - 13:00)</div>
+            </div>
+
+            <table class="calendar-table">
+                <thead>
+                    <tr>
+                        <th style="color:#f03e3e">일</th>
+                        <th>월</th>
+                        <th>화</th>
+                        <th>수</th>
+                        <th>목</th>
+                        <th>금</th>
+                        <th style="color:#1c7ed6">토</th>
+                    </tr>
+                </thead>
+                <tbody id="vacationBody"></tbody>
+            </table>
+
+            <div class="print-footer">
+                <span class="pf-title">📌 조교 명단</span>
+                <div class="ta-name-box" id="taBoxVacation"></div>
+                <div class="contact-info">
+                    <span>Tel. 02-2173-2303</span>
+                    <span>Office. 본관320호</span>
+                    <span>E-mail. hufsiran@gmail.com</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script>
+    // === 데이터 ===
+    let semAssistants = [];
+    let vacAssistants = [];
+    
+    let selectedTaIndex = -1;
+    let activeMainMode = 'semester';
+    let subModeSem = 'input';
+    let subModeVac = 'holiday';
+
+    let semesterResult = {};
+    let vacationResult = {};
+    let globalHolidays = new Set();
+
+    const times = [9, 10, 11, 12, 13, 14, 15, 16]; 
+    const days = ["월", "화", "수", "목", "금"];
+    
+    // [수정됨] 회색 제외, 선명하고 구분 잘되는 색상 10종
+    const pastelColors = [
+        "#FFADAD", // Red
+        "#FFD6A5", // Orange
+        "#FDFFB6", // Yellow
+        "#CAFFBF", // Green
+        "#9BF6FF", // Cyan
+        "#A0C4FF", // Blue
+        "#BDB2FF", // Purple
+        "#FFC6FF", // Pink
+        "#84D8E2", // Teal
+        "#F4A261"  // Deep Orange
+    ];
+
+    window.onload = function() {
+        initSemesterTable();
+        renderCalendar();
+        
+        document.querySelectorAll('.live-text').forEach(input => {
+            input.addEventListener('input', (e) => {
+                document.getElementById(e.target.dataset.target).innerText = e.target.value;
+            });
+        });
+
+        // 예시
+        addSemAssistant('박석사', 'grad', 100, 20);
+        addSemAssistant('김학부', 'under', 50, 10);
+        selectTa(0);
+    };
+
+    function switchMainMode(mode) {
+        activeMainMode = mode;
+        selectedTaIndex = -1; 
+        document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+
+        document.getElementById('semesterContainer').classList.toggle('active', mode === 'semester');
+        document.getElementById('vacationContainer').classList.toggle('active', mode === 'vacation');
+        
+        if(mode === 'semester') { renderSemesterCells(); renderTaList('semester'); }
+        else { renderCalendarCells(); renderTaList('vacation'); }
+    }
+
+    function setSubMode(main, sub) {
+        if (main === 'semester') {
+            subModeSem = sub;
+            document.getElementById('btnSemInput').classList.toggle('active', sub === 'input');
+            document.getElementById('btnSemView').classList.toggle('active', sub === 'view');
+            
+            // [NEW] 학기 중 멘트 변경
+            const msg = document.getElementById('msgSemester');
+            if (sub === 'input') msg.innerText = "조교 선택 후 시간표를 클릭하여 '불가(X)' 체크";
+            else msg.innerText = "배정 결과 확인 후 근무표 이미지로 저장";
+            
+            renderSemesterCells();
+        } else {
+            subModeVac = sub;
+            document.getElementById('btnVacHoliday').classList.toggle('active', sub === 'holiday');
+            document.getElementById('btnVacInput').classList.toggle('active', sub === 'input');
+            document.getElementById('btnVacView').classList.toggle('active', sub === 'view');
+            
+            // [NEW] 방학 중 멘트 변경
+            const msg = document.getElementById('msgVacation');
+            if (sub === 'holiday') msg.innerText = "달력에서 설날, 공휴일 등을 클릭하여 휴일 지정";
+            else if (sub === 'input') msg.innerText = "조교 선택 후 시간표를 클릭하여 '불가(X)' 체크";
+            else msg.innerText = "배정 결과 확인 후 근무표 이미지로 저장";
+            
+            renderCalendarCells();
+        }
+    }
+
+    // === 조교 관리 ===
+    function addSemAssistant(n, t, th, ph) {
+        const name = n || document.getElementById('newNameSem').value;
+        const type = t || document.getElementById('newTypeSem').value;
+        const target = th || parseInt(document.getElementById('newTargetSem').value);
+        const prev = ph || parseInt(document.getElementById('newPrevSem').value) || 0;
+        
+        if(!name) return alert("이름 입력");
+        
+        semAssistants.push({ 
+            id: Date.now(), name, type, 
+            targetHours: target, 
+            prevHours: prev, 
+            assigned: 0, 
+            impossible: new Set() 
+        });
+        
+        document.getElementById('newNameSem').value = "";
+        document.getElementById('newPrevSem').value = "0"; 
+        renderTaList('semester'); renderFooterNames('semester'); selectTa(semAssistants.length-1);
+    }
+
+    function addVacAssistant(n, t, th, ph) {
+        const name = n || document.getElementById('newNameVac').value;
+        const type = t || document.getElementById('newTypeVac').value;
+        const target = th || parseInt(document.getElementById('newTargetVac').value);
+        const prev = ph || parseInt(document.getElementById('newPrevVac').value) || 0;
+
+        if(!name) return alert("이름 입력");
+
+        vacAssistants.push({ 
+            id: Date.now(), name, type, 
+            targetHours: target, 
+            prevHours: prev,
+            assigned: 0, 
+            impossible: new Set() 
+        });
+
+        document.getElementById('newNameVac').value = "";
+        document.getElementById('newPrevVac').value = "0";
+        renderTaList('vacation'); renderFooterNames('vacation'); selectTa(vacAssistants.length-1);
+    }
+
+    function renderTaList(mode) {
+        const list = document.getElementById(mode === 'semester' ? 'taListSemester' : 'taListVacation');
+        const arr = mode === 'semester' ? semAssistants : vacAssistants;
+        list.innerHTML = "";
+
+        arr.forEach((ta, idx) => {
+            const isActive = (activeMainMode === mode && idx === selectedTaIndex);
+            const li = document.createElement('li');
+            li.className = `ta-item ${isActive ? 'active' : ''}`;
+            li.onclick = () => selectTa(idx);
+            
+            const badgeText = ta.type === 'grad' ? '대학원' : '학부';
+            const badgeClass = ta.type === 'grad' ? 'badge-grad' : 'badge-und';
+            
+            let pctPrev = (ta.prevHours / ta.targetHours) * 100;
+            let pctCurr = (ta.assigned / ta.targetHours) * 100;
+            if (pctPrev + pctCurr > 100) {} 
+
+            li.innerHTML = `
+                <div style="width:100%">
+                    <div style="display:flex; justify-content:space-between;">
+                        <span><strong>${ta.name}</strong> <span class="badge ${badgeClass}">${badgeText}</span></span>
+                        <button class="btn-del" onclick="event.stopPropagation(); deleteTa(${idx}, '${mode}')">삭제</button>
+                    </div>
+                    <div class="ta-info">
+                        목표: ${ta.targetHours}h<br>
+                        누적(${ta.prevHours}) + 배정(<strong>${ta.assigned}</strong>) = ${ta.prevHours + ta.assigned}h
+                    </div>
+                    <div class="progress-bg">
+                        <div class="bar-prev" style="width: ${pctPrev}%"></div>
+                        <div class="bar-curr" style="width: ${pctCurr}%"></div>
+                    </div>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    function selectTa(idx) {
+        selectedTaIndex = idx;
+        renderTaList(activeMainMode);
+        if(activeMainMode === 'semester') renderSemesterCells();
+        else renderCalendarCells();
+    }
+
+    function deleteTa(idx, mode) {
+        if(mode === 'semester') semAssistants.splice(idx, 1);
+        else vacAssistants.splice(idx, 1);
+        selectedTaIndex = -1;
+        renderTaList(mode); renderFooterNames(mode);
+        if(mode==='semester') renderSemesterCells(); else renderCalendarCells();
+    }
+
+    function renderFooterNames(mode) {
+        const arr = mode === 'semester' ? semAssistants : vacAssistants;
+        const boxId = mode === 'semester' ? 'taBoxSemester' : 'taBoxVacation';
+        
+        const sorted = [...arr].sort((a,b) => {
+            if (a.type !== b.type) return a.type === 'grad' ? -1 : 1;
+            return a.name.localeCompare(b.name);
+        }).map(a => a.name).join(',  ');
+
+        document.getElementById(boxId).innerText = sorted || "(조교 등록 필요)";
+    }
+
+    // === 학기 중 로직 ===
+    function initSemesterTable() {
+        const tbody = document.getElementById('semesterBody');
+        tbody.innerHTML = "";
+        let period = 1;
+
+        times.forEach(t => {
+            const tr = document.createElement('tr');
+            
+            const thP = document.createElement('th');
+            thP.innerText = `${period}교시`;
+            if(t===12) thP.style.backgroundColor = "#e9ecef";
+            tr.appendChild(thP);
+            period++;
+
+            const thT = document.createElement('th');
+            thT.innerText = `${t<10?'0'+t:t}:00 - ${t+1<10?'0'+(t+1):t+1}:00`;
+            if(t===12) thT.style.backgroundColor = "#e9ecef";
+            tr.appendChild(thT);
+
+            days.forEach((d, idx) => {
+                const td = document.createElement('td');
+                td.dataset.id = `${idx}-${t}`;
+                if (t===12) { td.classList.add('cell-lunch'); td.innerText = "점심 시간"; }
+                else td.onclick = () => clickSemesterCell(idx, t, td);
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+    }
+
+    function clickSemesterCell(day, time, td) {
+        if (subModeSem !== 'input') return;
+        if (selectedTaIndex === -1) return alert("조교를 선택하세요.");
+        const ta = semAssistants[selectedTaIndex];
+        const id = `${day}-${time}`;
+        
+        if (ta.impossible.has(id)) ta.impossible.delete(id);
+        else ta.impossible.add(id);
+        
+        renderSemesterCells();
+    }
+
+    function renderSemesterCells() {
+        document.querySelectorAll('#semesterBody td:not(.cell-lunch)').forEach(td => {
+            const id = td.dataset.id;
+            td.className = ''; td.innerText = ''; td.style.background = '';
+
+            if (subModeSem === 'input' && selectedTaIndex !== -1) {
+                if (semAssistants[selectedTaIndex].impossible.has(id)) {
+                    // [수정] 불가 텍스트를 JS에서 제어, CSS는 스타일만
+                    td.classList.add('cell-impossible');
+                    td.innerText = "불가"; 
+                }
+            } else if (subModeSem === 'view') {
+                const name = semesterResult[id];
+                if (name) {
+                    td.classList.add('cell-assigned');
+                    td.innerText = name;
+                    td.style.backgroundColor = name === "배정불가" ? "#ffc9c9" : getNameColor(name);
+                }
+            }
+        });
+    }
+
+    function generateSemester() {
+        if (semAssistants.length === 0) return alert("조교 없음");
+        semAssistants.forEach(a => a.assigned = 0);
+        semesterResult = {};
+
+        let slots = [];
+        days.forEach((d, dIdx) => times.forEach(t => { if(t!==12) slots.push(`${dIdx}-${t}`); }));
+        slots.sort(() => Math.random() - 0.5);
+
+        slots.forEach(id => {
+            let cands = semAssistants.filter(a => !a.impossible.has(id));
+            if (cands.length === 0) semesterResult[id] = "배정불가";
+            else {
+                cands.sort((a,b) => {
+                    const ratioA = (a.prevHours + a.assigned) / a.targetHours;
+                    const ratioB = (b.prevHours + b.assigned) / b.targetHours;
+                    return ratioA - ratioB;
+                });
+                cands[0].assigned++;
+                semesterResult[id] = cands[0].name;
+            }
+        });
+        renderTaList('semester');
+        setSubMode('semester', 'view');
+        alert("학기 근무표 배정 완료!");
+    }
+
+    // === 방학 중 로직 ===
+    function renderCalendar() {
+        const year = parseInt(document.getElementById('vacYear').value);
+        const month = parseInt(document.getElementById('vacMonth').value);
+        document.getElementById('dispVacTitle').innerText = `${year}년 ${month<10?'0'+month:month}월`;
+
+        const tbody = document.getElementById('vacationBody');
+        tbody.innerHTML = "";
+        const firstDay = new Date(year, month-1, 1).getDay();
+        const lastDate = new Date(year, month, 0).getDate();
+        
+        let row = document.createElement('tr');
+        let cnt = 1;
+        for(let i=0; i<firstDay; i++) row.appendChild(document.createElement('td'));
+        for(let i=firstDay; i<7; i++) row.appendChild(createCalCell(year, month, cnt++, i));
+        tbody.appendChild(row);
+        while(cnt <= lastDate) {
+            row = document.createElement('tr');
+            for(let i=0; i<7; i++) {
+                if(cnt > lastDate) row.appendChild(document.createElement('td'));
+                else row.appendChild(createCalCell(year, month, cnt++, i));
+            }
+            tbody.appendChild(row);
+        }
+        renderCalendarCells();
+    }
+
+    function createCalCell(y, m, d, dw) {
+        const td = document.createElement('td');
+        const key = `${y}-${m}-${d}`;
+        td.dataset.date = key;
+        const span = document.createElement('span');
+        span.className = `date-num ${dw===0?'sun':dw===6?'sat':''}`;
+        span.innerText = d;
+        td.appendChild(span);
+        if (dw===0 || dw===6) td.style.backgroundColor = "#f8f9fa";
+        
+        td.onclick = () => {
+            if (dw !== 0 && dw !== 6) clickVacationCell(key);
+        };
+        
+        return td;
+    }
+
+    function clickVacationCell(key) {
+        if (subModeVac === 'holiday') {
+            if (globalHolidays.has(key)) globalHolidays.delete(key);
+            else globalHolidays.add(key);
+        } else if (subModeVac === 'input') {
+            if (selectedTaIndex === -1) return alert("조교 선택 필요");
+            if (globalHolidays.has(key)) return;
+            const ta = vacAssistants[selectedTaIndex];
+            if (ta.impossible.has(key)) ta.impossible.delete(key);
+            else ta.impossible.add(key);
+        }
+        renderCalendarCells();
+    }
+
+    function renderCalendarCells() {
+        document.querySelectorAll('#vacationBody td[data-date]').forEach(td => {
+            const key = td.dataset.date;
+            // [수정됨] 내부 내용을 모두 지우지 않고, 날짜 숫자(첫 번째 자식)만 남기고 나머지를 지움
+            while(td.childNodes.length > 1) td.removeChild(td.lastChild);
+            
+            td.classList.remove('cell-holiday', 'cell-impossible');
+
+            if (globalHolidays.has(key)) {
+                td.classList.add('cell-holiday');
+            } else if (subModeVac === 'input' && selectedTaIndex !== -1) {
+                if (vacAssistants[selectedTaIndex].impossible.has(key)) {
+                     // [수정완료] 날짜를 덮어쓰지 않고, div를 추가하여 '불가' 표시
+                    td.classList.add('cell-impossible');
+                    const div = document.createElement('div');
+                    div.innerText = "불가";
+                    div.style.color = "#c92a2a";
+                    div.style.fontWeight = "bold";
+                    div.style.marginTop = "5px";
+                    div.style.fontSize = "0.9rem";
+                    td.appendChild(div);
+                }
+            } else if (subModeVac === 'view') {
+                const name = vacationResult[key];
+                if (name) {
+                    const div = document.createElement('div');
+                    div.className = 'ta-badge';
+                    div.innerText = name;
+                    div.style.backgroundColor = name === "배정불가" ? "#ffc9c9" : getNameColor(name);
+                    td.appendChild(div);
+                }
+            }
+        });
+    }
+
+    function generateVacation() {
+        if (vacAssistants.length === 0) return alert("조교 없음");
+        vacAssistants.forEach(a => a.assigned = 0);
+        vacationResult = {};
+
+        const y = parseInt(document.getElementById('vacYear').value);
+        const m = parseInt(document.getElementById('vacMonth').value);
+        const last = new Date(y, m, 0).getDate();
+        let dates = [];
+        
+        for(let d=1; d<=last; d++) {
+            const k = `${y}-${m}-${d}`;
+            const dw = new Date(y, m-1, d).getDay();
+            if (dw!==0 && dw!==6 && !globalHolidays.has(k)) dates.push(k);
+        }
+        dates.sort(() => Math.random() - 0.5);
+
+        dates.forEach(k => {
+            let cands = vacAssistants.filter(a => !a.impossible.has(k));
+            if (cands.length === 0) vacationResult[k] = "배정불가";
+            else {
+                cands.sort((a,b) => {
+                    const ratioA = (a.prevHours + a.assigned) / a.targetHours;
+                    const ratioB = (b.prevHours + b.assigned) / b.targetHours;
+                    return ratioA - ratioB;
+                });
+                cands[0].assigned += 4;
+                vacationResult[k] = cands[0].name;
+            }
+        });
+        renderTaList('vacation');
+        setSubMode('vacation', 'view');
+        alert("방학 근무표 배정 완료!");
+    }
+
+    function getNameColor(str) {
+        let hash = 0;
+        for (let i=0; i<str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        return pastelColors[Math.abs(hash) % pastelColors.length];
+    }
+
+    function downloadImage(mode) {
+        const targetId = mode === 'semester' ? 'semesterA4' : 'vacationA4';
+        const dateStr = mode === 'semester' ? document.getElementById('semTitleDate').value : document.getElementById('dispVacTitle').innerText;
+        const safeDate = dateStr.replace(/\s/g, "_");
+        
+        html2canvas(document.getElementById(targetId), { scale: 2 }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `페르시아어이란학과_${safeDate}_조교근무표.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    }
+</script>
+
+</body>
+</html>

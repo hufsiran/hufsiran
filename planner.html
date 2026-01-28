@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>페르시아어·이란학과 근무공정 생성기</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f3f5; padding: 30px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* 홈 버튼 */
+        .home-btn { position: fixed; top: 20px; left: 20px; width: 50px; height: 50px; background-color: #0b2a4a; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; text-decoration: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-size: 24px; z-index: 9999; transition: transform 0.2s; }
+        .home-btn:hover { transform: scale(1.1); }
+
+        .container { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 900px; width: 100%; border-top: 5px solid #217346; }
+        
+        h1 { font-family: 'Jua'; color: #217346; text-align: center; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+        
+        /* 가이드 박스 */
+        .guide-box { background: #e7f5ff; border: 1px solid #74c0fc; padding: 20px; border-radius: 10px; margin-bottom: 30px; }
+        .guide-title { font-family: 'Jua'; font-size: 1.2rem; color: #004085; margin-bottom: 10px; }
+        .guide-text { font-size: 0.95rem; color: #343a40; line-height: 1.6; }
+
+        /* 섹션 스타일 */
+        .section { margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px; border: 1px solid #e9ecef; }
+        .sec-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; color: #495057; border-left: 4px solid #217346; padding-left: 10px; }
+        
+        label { display: block; font-size: 0.9rem; font-weight: bold; margin-bottom: 5px; color: #666; margin-top: 10px; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 5px; font-family: inherit; box-sizing: border-box; }
+        
+        /* 숫자 입력 화살표 제거 (Chrome, Safari, Edge, Opera) */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        /* Firefox */
+        input[type=number] { -moz-appearance: textfield; }
+
+        textarea { height: 100px; resize: vertical; font-family: monospace; }
+        .period-row { display: flex; gap: 10px; margin-bottom: 5px; }
+        
+        button { cursor: pointer; padding: 10px; border-radius: 5px; border: none; font-weight: bold; transition: 0.2s; }
+        .btn-add { background: #e9ecef; color: #333; width: 100%; border: 1px dashed #ccc; } .btn-add:hover { background: #dee2e6; }
+        .btn-del { background: #ff6b6b; color: white; width: 50px; }
+        .btn-calc { background: #495057; color: white; width: 100%; margin-top: 10px; }
+        .btn-main { background: #217346; color: white; width: 100%; font-size: 1.2rem; padding: 15px; margin-top: 20px; font-family: 'Jua'; }
+        .btn-main:hover { background: #1e6b41; transform: translateY(-2px); }
+        .btn-small { background: #339af0; color: white; padding: 8px 15px; }
+        
+        .calc-res { text-align: center; font-size: 1.5rem; font-weight: bold; color: #217346; margin: 10px 0; }
+        .calc-detail { display: flex; justify-content: space-around; background: white; padding: 10px; border-radius: 5px; font-size: 0.9rem; }
+        .ta-list { list-style: none; padding: 0; margin-top: 10px; }
+        .ta-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 8px 15px; border: 1px solid #dee2e6; border-radius: 5px; margin-bottom: 5px; }
+        .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; color: white; margin-left: 5px; }
+        .bg-grad { background: #7950f2; } .bg-under { background: #fab005; }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="home-btn" title="메인으로">🏠</a>
+
+    <div class="container">
+        <h1>📅 조교 근무공정 생성기</h1>
+        
+        <div class="guide-box">
+            <div class="guide-title">📘 사용 가이드</div>
+            <div class="guide-text">
+                <strong>1단계:</strong> 학기 전체 기간(학기/방학 구분)과 휴일을 입력하세요.<br>
+                <strong>2단계:</strong> 조교를 등록하면 총 근무시간이 자동 계산됩니다. 목표 시간을 확인하고 적용하세요.<br>
+                <strong>3단계:</strong> <strong>[엑셀 파일 생성]</strong>을 누르면 서식이 완성된 파일이 다운로드됩니다.<br>
+                * 생성된 파일은 매월 조교들이 자신의 근무 시간을 기록하는 용도로 사용하세요.
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="sec-title">1. 파일 설정 & 기간 입력</div>
+            <label>파일 제목</label>
+            <input type="text" id="fileTitle" value="2026년 1학기 근무공정" placeholder="예: 2026학년도 1학기 근무공정">
+            <label>근무 기간 설정 (학기/방학 구분)</label>
+            <div id="periodList"></div>
+            <button class="btn-add" onclick="addPeriod()">+ 기간 추가</button>
+            <label>휴일 입력 (YYYY-MM-DD 일정명)</label>
+            <textarea id="holidays" placeholder="2026-05-05 어린이날&#13;&#10;2026-06-06 현충일"></textarea>
+        </div>
+
+        <div class="section">
+            <div class="sec-title">2. 목표 시간 계산 & 조교 등록</div>
+            <div style="background:#e7f5ff; padding:15px; border-radius:10px; margin-bottom:15px;">
+                <div style="text-align:center; font-size:0.9rem; color:#004085;">총 필요 근무시간 (휴일 제외)</div>
+                <div class="calc-res"><span id="totalTime">0</span>시간</div>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin:10px 0;">
+                    <span style="font-size:0.9rem; font-weight:bold;">대학원생 가중치: <span id="ratioText">1.5배</span></span>
+                    <input type="range" id="ratio" min="1" max="2" step="0.1" value="1.5" style="width:120px;" oninput="calc()">
+                </div>
+                <div class="calc-detail">
+                    <span>🎓 대학원: <strong id="recGrad" style="color:#7950f2">0</strong>h</span>
+                    <span>🎒 학부: <strong id="recUnder" style="color:#fab005">0</strong>h</span>
+                </div>
+                <button class="btn-calc" onclick="applyTargets()">▼ 목표 시간에 일괄 적용</button>
+            </div>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="newName" placeholder="이름" style="flex:2">
+                <select id="newType" style="flex:1"><option value="grad">대학원</option><option value="under">학부</option></select>
+                <input type="number" id="newTarget" placeholder="목표" style="flex:1">
+                <button class="btn-small" onclick="addTa()">추가</button>
+            </div>
+            <ul id="taList" class="ta-list"></ul>
+        </div>
+
+        <button class="btn-main" onclick="exportExcel()">📊 엑셀 파일 생성 (다운로드)</button>
+    </div>
+
+<script>
+    let assistants = [];
+    const colors = ["#FFADAD","#FFD6A5","#FDFFB6","#CAFFBF","#9BF6FF","#A0C4FF","#BDB2FF","#FFC6FF","#84D8E2","#F4A261"];
+
+    window.onload = function() {
+        addPeriod(); 
+        document.getElementById('holidays').addEventListener('input', calc);
+    };
+
+    function addPeriod() {
+        const div = document.createElement('div');
+        div.className = 'period-row';
+        div.innerHTML = `
+            <input type="date" class="p-start" onchange="calc()">
+            <input type="date" class="p-end" onchange="calc()">
+            <select class="p-type" onchange="calc()">
+                <option value="sem">학기(7h)</option>
+                <option value="vac">방학(4h)</option>
+            </select>
+            <button class="btn-del" onclick="this.parentElement.remove(); calc()">X</button>
+        `;
+        document.getElementById('periodList').appendChild(div);
+    }
+
+    function calc() {
+        const rows = document.querySelectorAll('.period-row');
+        const holidaySet = new Set();
+        document.getElementById('holidays').value.split('\n').forEach(line => {
+            const d = line.trim().split(/\s+/)[0];
+            if(d) holidaySet.add(d);
+        });
+
+        let total = 0;
+        rows.forEach(row => {
+            const s = row.querySelector('.p-start').value;
+            const e = row.querySelector('.p-end').value;
+            const type = row.querySelector('.p-type').value;
+            const hours = (type === 'sem') ? 7 : 4;
+
+            if (s && e) {
+                let cur = new Date(s);
+                const last = new Date(e);
+                while (cur <= last) {
+                    const day = cur.getDay();
+                    const dStr = cur.toISOString().slice(0, 10);
+                    if (day !== 0 && day !== 6 && !holidaySet.has(dStr)) {
+                        total += hours;
+                    }
+                    cur.setDate(cur.getDate() + 1);
+                }
+            }
+        });
+
+        document.getElementById('totalTime').innerText = total;
+        
+        const ratio = parseFloat(document.getElementById('ratio').value);
+        document.getElementById('ratioText').innerText = ratio + "배";
+        const gc = assistants.filter(a => a.type === 'grad').length;
+        const uc = assistants.filter(a => a.type === 'under').length;
+        if (gc + uc > 0) {
+            const uHour = total / ((ratio * gc) + uc);
+            document.getElementById('recGrad').innerText = Math.round(uHour * ratio);
+            document.getElementById('recUnder').innerText = Math.round(uHour);
+        }
+    }
+
+    function addTa() {
+        const name = document.getElementById('newName').value;
+        const type = document.getElementById('newType').value;
+        const target = parseInt(document.getElementById('newTarget').value) || 0;
+        if(!name) return alert('이름을 입력하세요');
+        assistants.push({ name, type, target, color: colors[assistants.length % colors.length] });
+        document.getElementById('newName').value = '';
+        renderList(); calc();
+    }
+
+    function renderList() {
+        const list = document.getElementById('taList');
+        list.innerHTML = '';
+        assistants.forEach((a, idx) => {
+            const li = document.createElement('li');
+            li.className = 'ta-item';
+            const badge = a.type === 'grad' ? '<span class="badge bg-grad">대학원</span>' : '<span class="badge bg-under">학부</span>';
+            li.innerHTML = `<div><strong>${a.name}</strong> ${badge} <span style="color:#666;">(목표: ${a.target}h)</span></div>
+                <button class="btn-del" onclick="assistants.splice(${idx},1); renderList(); calc();">삭제</button>`;
+            list.appendChild(li);
+        });
+    }
+
+    function applyTargets() {
+        const gh = parseInt(document.getElementById('recGrad').innerText);
+        const uh = parseInt(document.getElementById('recUnder').innerText);
+        assistants.forEach(a => a.target = (a.type === 'grad' ? gh : uh));
+        renderList(); alert("적용되었습니다.");
+    }
+
+    function exportExcel() {
+        const title = document.getElementById('fileTitle').value;
+        const periodRows = Array.from(document.querySelectorAll('.period-row')).map(r => ({
+            s: new Date(r.querySelector('.p-start').value),
+            e: new Date(r.querySelector('.p-end').value),
+            t: r.querySelector('.p-type').value
+        })).sort((a,b) => a.s - b.s);
+
+        if (periodRows.length === 0 || isNaN(periodRows[0].s)) return alert("기간을 입력하세요.");
+
+        const holidayMap = {};
+        document.getElementById('holidays').value.split('\n').forEach(line => {
+            const p = line.trim().split(/\s+/);
+            if(p.length >= 2) holidayMap[p[0]] = p.slice(1).join(' ');
+        });
+
+        const header = ["학사 일정", "비고", "날짜", "요일", "09:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-13:00", "13:00-14:00", "14:00-15:00", "15:00-16:00", "16:00-17:00"];
+        const data = [[title], [], header];
+        const styles = [];
+        const days = ["일","월","화","수","목","금","토"];
+
+        let rowIdx = 3; 
+        let excelStartRow = 4;
+        let curMonth = periodRows[0].s.getMonth();
+
+        periodRows.forEach(period => {
+            let cur = new Date(period.s);
+            while (cur <= period.e) {
+                if (cur.getMonth() !== curMonth) {
+                    addSummary(data, styles, excelStartRow, rowIdx);
+                    rowIdx = data.length; 
+                    excelStartRow = rowIdx + 1; 
+                    curMonth = cur.getMonth();
+                }
+
+                const dStr = cur.toISOString().slice(0, 10);
+                const dayNum = cur.getDay();
+                let row = Array(12).fill("");
+                row[2] = dStr; row[3] = days[dayNum];
+
+                let isGray = false;
+                if (dayNum === 0 || dayNum === 6) {
+                    isGray = true;
+                } else if (holidayMap[dStr]) { 
+                    row[0] = holidayMap[dStr]; isGray = true; 
+                } else {
+                    row[7] = "점심시간"; 
+                    if (period.t === 'vac') {
+                        styles.push({ r: rowIdx, type: 'vacation' });
+                    }
+                }
+
+                data.push(row);
+                if (isGray) styles.push({ r: rowIdx, type: 'gray' });
+
+                cur.setDate(cur.getDate() + 1);
+                rowIdx++;
+            }
+        });
+        addSummary(data, styles, excelStartRow, rowIdx);
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(data);
+
+        ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:11}}];
+        
+        ws['!cols'] = [
+            {wch:20}, {wch:10}, {wch:12}, {wch:5}, // A-D
+            {wch:10}, {wch:10}, {wch:10}, {wch:10}, // E-H
+            {wch:10}, {wch:10}, {wch:10}, {wch:10}, // I-L
+            {wch:5}, // M (공백)
+            {wch:15}, {wch:10}, {wch:10}, {wch:10} // N, O, P, Q
+        ];
+
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const ref = XLSX.utils.encode_cell({r:R, c:C});
+                if (!ws[ref]) continue;
+
+                ws[ref].s = {
+                    border: { top:{style:"thin"}, bottom:{style:"thin"}, left:{style:"thin"}, right:{style:"thin"} },
+                    alignment: { horizontal: "center", vertical: "center" }
+                };
+
+                if (R === 0) { ws[ref].s.font = { sz: 18, bold: true }; ws[ref].s.border = {}; }
+                else if (R === 2) { ws[ref].s.fill = { fgColor: { rgb: "E2E2E2" } }; ws[ref].s.font = { bold: true }; }
+                else if (C === 7 && ws[ref].v === "점심시간") {
+                    ws[ref].s.fill = { fgColor: { rgb: "FCE4D6" } };
+                }
+                else {
+                    const st = styles.find(s => s.r === R);
+                    if (st) {
+                        if (st.type === 'gray') {
+                            ws[ref].s.fill = { fgColor: { rgb: "D9D9D9" } };
+                        }
+                        else if (st.type === 'vacation') {
+                            if (C === 4 || C === 10 || C === 11) {
+                                ws[ref].s.fill = { fgColor: { rgb: "D9D9D9" } };
+                            }
+                        }
+                        else if (st.type === 'sumHead' || st.type === 'sumTotal') {
+                            ws[ref].s.fill = { fgColor: { rgb: "F4F4F4" } };
+                            ws[ref].s.font = { bold: true };
+                        }
+                        else if (st.type === 'sumName' && C === 13 && st.color) {
+                            ws[ref].s.fill = { fgColor: { rgb: st.color.replace('#','') } };
+                            ws[ref].s.font = { bold: true };
+                        }
+                    }
+                }
+            }
+        }
+        XLSX.utils.book_append_sheet(wb, ws, "근무공정");
+        XLSX.writeFile(wb, title + ".xlsx");
+    }
+
+    function addSummary(data, styles, startRow, endRow) {
+        if (assistants.length === 0) return;
+
+        let hRow = Array(17).fill(""); 
+        hRow[13] = "조교명"; hRow[14] = "월 근무"; hRow[15] = "누적 근무"; hRow[16] = "목표 근무";
+        
+        data.push(hRow);
+        
+        let rIdx = data.length - 1;
+        styles.push({ r: rIdx, type: 'sumHead' });
+
+        const dataEndExcelRow = endRow; 
+        const firstRowExcelIndex = rIdx + 2; 
+
+        assistants.forEach(a => {
+            rIdx++;
+            let r = Array(17).fill("");
+            r[13] = a.name;
+            r[16] = a.target; 
+
+            if (dataEndExcelRow >= startRow) {
+                r[14] = { f: `COUNTIF(E${startRow}:L${dataEndExcelRow}, "${a.name}")` };
+                r[15] = { f: `COUNTIF(E4:L${dataEndExcelRow}, "${a.name}")` };
+            } else {
+                r[14] = 0; r[15] = 0;
+            }
+
+            data.push(r);
+            styles.push({ r: rIdx, type: 'sumName', color: a.color });
+        });
+
+        rIdx++;
+        const lastRowExcelIndex = rIdx; 
+        
+        let totalRow = Array(17).fill("");
+        totalRow[13] = "합계";
+        totalRow[14] = { f: `SUM(O${firstRowExcelIndex}:O${lastRowExcelIndex})` };
+        totalRow[15] = { f: `SUM(P${firstRowExcelIndex}:P${lastRowExcelIndex})` };
+        totalRow[16] = { f: `SUM(Q${firstRowExcelIndex}:Q${lastRowExcelIndex})` };
+        
+        data.push(totalRow);
+        styles.push({ r: rIdx, type: 'sumTotal' });
+        
+        data.push(Array(17).fill(""));
+    }
+</script>
+
+</body>
+</html>

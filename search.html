@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학과 규정 검색기 (Q&A)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        :root { --primary: #0b2a4a; --bg: #f4f7f6; }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: var(--bg); margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; color: #333; }
+        
+        /* [추가됨] 홈 버튼 스타일 */
+        .home-btn { 
+            position: fixed; top: 20px; left: 20px; width: 50px; height: 50px; 
+            background-color: var(--primary); color: white; border-radius: 50%; 
+            display: flex; justify-content: center; align-items: center; 
+            text-decoration: none; box-shadow: 0 4px 6px rgba(0,0,0,0.2); 
+            font-size: 24px; z-index: 9999; transition: 0.2s; 
+        }
+        .home-btn:hover { transform: scale(1.1); background-color: #0f3d6b; }
+
+        .container { width: 100%; max-width: 700px; padding: 40px 20px; text-align: center; }
+        
+        .logo { font-size: 3rem; margin-bottom: 10px; color: var(--primary); }
+        .title { font-size: 1.5rem; font-weight: bold; margin-bottom: 30px; color: #555; }
+        
+        /* 검색창 스타일 */
+        .search-box { position: relative; width: 100%; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 50px; background: white; transition: 0.3s; }
+        .search-box:focus-within { transform: scale(1.02); box-shadow: 0 8px 25px rgba(11, 42, 74, 0.2); }
+        .search-box input { width: 100%; padding: 18px 25px 18px 55px; border: 2px solid transparent; border-radius: 50px; font-size: 1.1rem; outline: none; background: transparent; }
+        .search-box i { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: #aaa; font-size: 1.2rem; }
+
+        /* 검색 결과 영역 */
+        .result-area { margin-top: 40px; text-align: left; width: 100%; }
+        .card { background: white; padding: 20px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); animation: fadeIn 0.3s; border-left: 5px solid var(--primary); cursor: pointer; transition: 0.2s; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        
+        .card-category { font-size: 0.8rem; font-weight: bold; color: #c5a059; margin-bottom: 5px; text-transform: uppercase; }
+        .card-question { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: var(--primary); }
+        .card-answer { font-size: 0.95rem; line-height: 1.6; color: #444; white-space: pre-wrap; display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+        .card.open .card-answer { display: block; }
+        .card-icon { float: right; color: #ddd; }
+        
+        .loading { color: #999; margin-top: 20px; font-size: 0.9rem; }
+        .no-result { color: #888; margin-top: 30px; font-size: 0.9rem; }
+        .error-msg { color: #c92a2a; margin-top: 20px; font-weight: bold; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="home-btn" title="메인으로">🏠</a>
+
+    <div class="container">
+        <div class="logo"><i class="fas fa-university"></i></div>
+        <div class="title">학과 규정/업무 검색기</div>
+        
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="궁금한 내용을 입력하세요 (예: 졸업, 이중전공, 장학금)">
+        </div>
+
+        <div id="loading" class="loading"><i class="fas fa-spinner fa-spin"></i> 구글 시트에서 데이터 불러오는 중...</div>
+        <div id="resultArea" class="result-area"></div>
+    </div>
+
+    <script>
+        // 선생님의 구글 시트 링크
+        const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTID60vHqTJbIOsY6cBFzZofAe7PlPXTwUtKuI___28XFppxLRXj0ikadC0RgsrDBknVHn8drLHXq-U/pub?output=csv";
+
+        let db = [];
+        const resultArea = document.getElementById('resultArea');
+        const loading = document.getElementById('loading');
+        const searchInput = document.getElementById('searchInput');
+
+        window.onload = function() {
+            Papa.parse(GOOGLE_SHEET_CSV_URL, {
+                download: true,
+                header: true, 
+                skipEmptyLines: true, 
+                complete: function(results) {
+                    db = results.data;
+                    loading.style.display = 'none';
+                    renderResults(""); 
+                },
+                error: function(err) {
+                    loading.style.display = 'none';
+                    resultArea.innerHTML = `<div class="error-msg">⚠️ 데이터 로딩 실패!<br>인터넷 연결을 확인하거나 링크를 점검해주세요.</div>`;
+                }
+            });
+        };
+
+        searchInput.addEventListener('input', function(e) {
+            const keyword = e.target.value.toLowerCase().trim();
+            renderResults(keyword);
+        });
+
+        function renderResults(keyword) {
+            resultArea.innerHTML = "";
+            
+            if (keyword.length < 1) {
+                resultArea.innerHTML = '<div class="no-result">키워드를 입력하면 학과 내규를 찾아드립니다.</div>';
+                return;
+            }
+
+            // 질문과 분류만 검색 (답변 제외)
+            const filtered = db.filter(item => {
+                if (!item['질문'] || !item['분류']) return false;
+                const q = item['질문'].toLowerCase();
+                const c = item['분류'].toLowerCase();
+                return q.includes(keyword) || c.includes(keyword);
+            });
+
+            if (filtered.length === 0) {
+                resultArea.innerHTML = '<div class="no-result">검색 결과가 없습니다. 선배님께 여쭤보세요! 😭</div>';
+                return;
+            }
+
+            filtered.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                const qText = item['질문'].replace(new RegExp(keyword, "gi"), match => `<span style="background:#fff3cd">${match}</span>`);
+                
+                card.innerHTML = `
+                    <div class="card-category">${item['분류']}</div>
+                    <div class="card-question">${qText} <i class="fas fa-chevron-down card-icon"></i></div>
+                    <div class="card-answer">${item['답변'] ? item['답변'].replace(/\n/g, '<br>') : '내용 없음'}</div>
+                `;
+                
+                card.addEventListener('click', () => {
+                    card.classList.toggle('open');
+                    const icon = card.querySelector('.card-icon');
+                    icon.className = card.classList.contains('open') ? 'fas fa-chevron-up card-icon' : 'fas fa-chevron-down card-icon';
+                });
+                
+                resultArea.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>

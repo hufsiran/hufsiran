@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>페르시아어·이란학과 학사일정표 생성기</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Jua', 'Malgun Gothic', sans-serif; background-color: #ffffff; padding: 30px; display: flex; gap: 30px; justify-content: center; align-items: flex-start; height: 100vh; overflow-y: auto; }
+        
+        .control-panel { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); width: 340px; flex-shrink: 0; position: sticky; top: 20px; border: 1px solid #dee2e6; }
+        .preview-panel { background: #333; padding: 20px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; overflow: auto; max-height: 90vh; }
+        
+        h2 { margin-top: 0; color: #495057; font-size: 1.4rem; text-align: center; margin-bottom: 20px; }
+        label { display: block; margin-top: 15px; font-size: 1rem; color: #6c757d; font-weight: bold; }
+        
+        input, textarea, button { width: 100%; padding: 12px; margin-top: 8px; box-sizing: border-box; border: 2px solid #dee2e6; border-radius: 10px; font-family: inherit; font-size: 1rem; outline: none; }
+        input:focus, textarea:focus { border-color: #86b7fe; }
+        textarea { height: 220px; resize: vertical; line-height: 1.5; }
+        
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        .apply-btn { background-color: #4dabf7; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 25px; transition: background 0.2s; }
+        .apply-btn:hover { background-color: #339af0; }
+        
+        .download-btn { background-color: #51cf66; margin-top: 15px; width: 100%; padding: 15px; font-size: 1.1rem; cursor: pointer; color: white; border: none; border-radius: 10px; font-weight: bold;}
+        .download-btn:hover { background-color: #40c057; }
+
+        .reset-btn { background-color: #ff6b6b; color: white; width: 30%; font-size: 0.9rem; padding: 12px 5px; border: none; }
+        .reset-btn:hover { background-color: #fa5252; }
+
+        canvas { width: 800px; height: auto; border: 1px solid #ccc; box-shadow: 0 0 20px rgba(0,0,0,0.5); background-color: white; }
+
+        /* 가이드 박스 스타일 */
+        .guide-card { background-color: #e7f5ff; border: 1px solid #74c0fc; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .guide-title { font-size: 1.1rem; font-weight: bold; color: #1971c2; margin-bottom: 10px; }
+        .guide-text { font-size: 0.85rem; color: #343a40; line-height: 1.6; }
+        .guide-text strong { color: #1864ab; }
+        .guide-text code { background: #fff; padding: 2px 4px; border-radius: 4px; font-weight: bold; border: 1px solid #ccc; }
+        
+        details { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #a5d8ff; }
+        summary { cursor: pointer; font-weight: bold; color: #d6336c; list-style: none; font-size: 0.85rem; }
+        summary:hover { text-decoration: underline; }
+
+        .tip-box { background: #f8f9fa; border-left: 4px solid #4dabf7; padding: 10px; margin-top: 10px; font-size: 0.85rem; color: #495057; }
+    </style>
+</head>
+<body>
+
+<a href="index.html" title="메인으로 이동" style="
+    position: fixed; 
+    top: 20px; 
+    left: 20px; 
+    width: 50px; 
+    height: 50px; 
+    background-color: #0b2a4a; 
+    color: white; 
+    border-radius: 50%; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    text-decoration: none; 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
+    font-size: 24px; 
+    z-index: 9999; 
+    transition: transform 0.2s;"
+    onmouseover="this.style.transform='scale(1.1)'" 
+    onmouseout="this.style.transform='scale(1.0)'">
+    🏠
+</a>
+
+    <div class="control-panel">
+        <h2>📅 학사일정표 만들기</h2>
+        
+        <div class="guide-card">
+            <div class="guide-title">📘 사용 가이드</div>
+            <div class="guide-text">
+                <strong>1. 기본 설정</strong><br>
+                연도와 월을 입력하세요.<br>
+                <strong>배경 사진:</strong> 학교 전경이나 <strong>Pixabay</strong> 등에서 계절감 있는 사진을 받아 적용하면 예쁩니다.<br><br>
+                <strong>2. 일정 입력 규칙 (중요!)</strong><br>
+                날짜+내용 순서 (예: 05일 개강)<br>
+                <code>*</code> 붙이면 <span style="color:#e03131; font-weight:bold;">빨간색 공휴일 표시</span> (예: *15일 광복절)<br>
+                <code>!</code> 붙이면 <span style="color:#087f5b; font-weight:bold;">초록색 강조 표시</span> (예: !20일 축제)<br><br>
+                <strong>3. 저장</strong><br>
+                변경사항 적용 → 💾 이미지 저장
+            </div>
+        </div>
+
+        <label>기간 설정</label>
+        <div style="display: flex; gap: 10px;">
+            <input type="number" id="year" value="2026" style="flex: 2;" placeholder="연도">
+            <input type="number" id="month" value="2" style="flex: 1;" placeholder="월">
+        </div>
+
+        <label>배경 사진</label>
+        <div style="display: flex; gap: 5px; align-items: flex-end;">
+            <input type="file" id="bgInput" accept="image/*" style="flex: 7;">
+            <button class="reset-btn" onclick="resetBgImage()">초기화</button>
+        </div>
+
+        <label>일정 입력</label>
+        <textarea id="scheduleInput" placeholder="예시)
+05일 사전수강신청
+*16 설날 연휴
+!20일 종강파티">05일 사전수강신청(2차)
+09. 수강신청(2~4학년)
+*16 설날 연휴
+*17 설날 연휴
+*18 설날 연휴
+20일 학위수여식
+!27일 신입생 환영회</textarea>
+
+        <button class="apply-btn" onclick="drawCalendar()">변경사항 적용하기</button>
+    </div>
+
+    <div class="preview-panel">
+        <canvas id="calendarCanvas" width="2300" height="1627"></canvas>
+        <button class="download-btn" onclick="downloadImage()">💾 이미지로 저장하기</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('calendarCanvas');
+        const ctx = canvas.getContext('2d');
+        let bgImage = new Image();
+        let isBgLoaded = false;
+        
+        document.fonts.ready.then(function() { drawCalendar(); });
+
+        document.getElementById('bgInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    bgImage.src = event.target.result;
+                    bgImage.onload = function() { 
+                        isBgLoaded = true;
+                        drawCalendar(); 
+                    }
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function resetBgImage() {
+            document.getElementById('bgInput').value = "";
+            isBgLoaded = false;
+            bgImage.src = "";
+            drawCalendar();
+        }
+
+        function drawRoundedRect(x, y, width, height, radius, color, isBorder=false) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            if (isBorder) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            } else {
+                ctx.fillStyle = color;
+                ctx.fill();
+            }
+        }
+
+        function drawCalendar() {
+            const year = parseInt(document.getElementById('year').value);
+            const month = parseInt(document.getElementById('month').value);
+            const events = parseSchedule(document.getElementById('scheduleInput').value);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 1. 배경 및 흰색 박스
+            if (isBgLoaded && bgImage.src) {
+                const imgRatio = bgImage.width / bgImage.height;
+                const canvasRatio = canvas.width / canvas.height;
+                let drawW, drawH, drawX, drawY;
+
+                if (imgRatio > canvasRatio) {
+                    drawH = canvas.height;
+                    drawW = bgImage.width * (canvas.height / bgImage.height);
+                    drawX = (canvas.width - drawW) / 2;
+                    drawY = 0;
+                } else {
+                    drawW = canvas.width;
+                    drawH = bgImage.height * (canvas.width / bgImage.width);
+                    drawX = 0;
+                    drawY = (canvas.height - drawH) / 2;
+                }
+                ctx.drawImage(bgImage, drawX, drawY, drawW, drawH);
+                drawRoundedRect(60, 300, canvas.width - 120, canvas.height - 380, 40, "rgba(255, 255, 255, 0.93)");
+            } else {
+                 ctx.fillStyle = "#f8f9fa";
+                 ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // 2. 제목
+            ctx.textAlign = "center";
+            ctx.fillStyle = "black";
+            ctx.font = "bold 60px 'Jua'"; 
+            ctx.fillText("페르시아어·이란학과", canvas.width / 2, 110);
+            ctx.font = "bold 110px 'Jua'"; 
+            ctx.fillText(`${year}년 ${month}월 학사일정`, canvas.width / 2, 230);
+
+            // 3. 레이아웃
+            const marginX = 120;
+            const gridWidth = canvas.width - (marginX * 2);
+            const gridHeight = 960; 
+            const startY = 580; 
+            const headerY = startY - 60; 
+
+            const cellW = gridWidth / 7;
+            const cellH = gridHeight / 6; 
+            const days = ["일", "월", "화", "수", "목", "금", "토"];
+            
+            // 4. 요일 헤더 (토요일 파란색 추가)
+            ctx.font = "bold 55px 'Jua'";
+            days.forEach((day, i) => {
+                const headerX = marginX + (i * cellW) + cellW/2;
+                
+                // 색상 결정: 일(0)=빨강, 토(6)=파랑, 나머지=검정
+                if (i === 0) ctx.fillStyle = "#ff6b6b";
+                else if (i === 6) ctx.fillStyle = "#339af0"; // 토요일 파랑
+                else ctx.fillStyle = "#495057";
+                
+                ctx.fillText(day, headerX, headerY);
+                
+                // 밑줄 색상
+                let underlineColor = "#dee2e6";
+                if (i === 0) underlineColor = "#ff6b6b";
+                if (i === 6) underlineColor = "#339af0"; // 토요일 파랑
+                
+                drawRoundedRect(marginX + (i * cellW) + 20, headerY + 15, cellW - 40, 8, 4, underlineColor);
+            });
+
+            // 5. 달력 내용
+            const firstDay = new Date(year, month - 1, 1).getDay();
+            const lastDate = new Date(year, month, 0).getDate();
+            let currentDay = 1;
+            
+            for (let row = 0; row < 6; row++) {
+                for (let col = 0; col < 7; col++) {
+                    if (row === 0 && col < firstDay) continue;
+                    if (currentDay > lastDate) break;
+
+                    const currentX = marginX + (col * cellW);
+                    const currentY = startY + (row * cellH);
+
+                    let eventData = events[currentDay] || { text: "", type: "normal" };
+                    let isSunday = col === 0;
+                    let isSaturday = col === 6;
+
+                    let cellBg = null;
+                    // 휴일은 무조건 빨간 배경
+                    if (eventData.type === "holiday") cellBg = "#fff0f0";
+                    // 일요일이지만 휴일 지정 안 된 경우 (그냥 일요일) -> 빨간 배경
+                    else if (isSunday) cellBg = "#fff0f0";
+                    // 강조(!)는 노란 배경
+                    else if (eventData.type === "highlight") cellBg = "#fff9db"; 
+                    
+                    // 토요일은 배경색 없음 (평일과 동일)
+
+                    if (cellBg) {
+                        drawRoundedRect(currentX + 5, currentY + 5, cellW - 10, cellH - 10, 20, cellBg);
+                    } else {
+                        drawRoundedRect(currentX + 5, currentY + 5, cellW - 10, cellH - 10, 20, "#e9ecef", true);
+                    }
+
+                    // 날짜 숫자 색상
+                    ctx.font = "bold 40px 'Jua'";
+                    ctx.textAlign = "left";
+                    
+                    if (isSunday || eventData.type === "holiday") ctx.fillStyle = "#ff6b6b"; // 빨강
+                    else if (isSaturday) ctx.fillStyle = "#1c7ed6"; // 토요일 파랑
+                    else ctx.fillStyle = "#343a40"; // 평일 검정
+                    
+                    ctx.fillText(currentDay, currentX + 20, currentY + 50);
+
+                    // 강조 아이콘
+                    if (eventData.type === "highlight") {
+                        ctx.font = "25px 'Jua'";
+                        ctx.fillText("⭐", currentX + cellW - 40, currentY + 50);
+                    }
+
+                    // 일정 텍스트 색상
+                    if (eventData.text) {
+                        ctx.font = "26px 'Jua'"; 
+                        if (eventData.type === "holiday") ctx.fillStyle = "#e03131"; // 빨강
+                        else if (eventData.type === "highlight") ctx.fillStyle = "#087f5b"; // 초록 (수정됨)
+                        else if (isSaturday) ctx.fillStyle = "#1c7ed6"; // 토요일 파랑
+                        else ctx.fillStyle = "#212529"; // 기본 검정
+
+                        const lines = eventData.text.split('\n');
+                        lines.forEach((line, idx) => {
+                            ctx.fillText(line, currentX + 20, currentY + 95 + (idx * 32));
+                        });
+                    }
+                    currentDay++;
+                }
+            }
+        }
+
+        function parseSchedule(text) {
+            const events = {};
+            const lines = text.split('\n');
+            const regex = /([\*\!]?)(\d+)(?:일|\.| \/)?\s+(.*)/; 
+            
+            lines.forEach(line => {
+                const match = line.match(regex);
+                if (match) {
+                    const tag = match[1];
+                    const day = parseInt(match[2]);
+                    const content = match[3].trim();
+                    
+                    let type = "normal";
+                    if (tag === "*") type = "holiday";
+                    if (tag === "!") type = "highlight";
+
+                    if (events[day]) {
+                        events[day].text += "\n" + content;
+                        if (type === "holiday") events[day].type = "holiday";
+                        else if (type === "highlight" && events[day].type !== "holiday") events[day].type = "highlight";
+                    } else {
+                        events[day] = { text: content, type: type };
+                    }
+                }
+            });
+            return events;
+        }
+
+        function downloadImage() {
+            const link = document.createElement('a');
+            const y = document.getElementById('year').value;
+            const m = document.getElementById('month').value;
+            link.download = `페르시아어이란학과_${y}년_${m}월_학사일정표.png`;
+            link.href = canvas.toDataURL("image/png", 1.0);
+            link.click();
+        }
+    </script>
+</body>
+</html>

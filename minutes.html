@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트 회의록 생성기</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Noto+Serif+KR:wght@700&display=swap" rel="stylesheet">
+    <style>
+        /* [기본 설정] */
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Noto Sans KR', sans-serif; 
+            background-color: #f4f6f9; 
+            display: flex; flex-direction: column; align-items: center; 
+            padding: 40px 20px; min-height: 100vh; margin: 0;
+        }
+
+        /* 홈 버튼 */
+        .home-btn {
+            position: fixed; top: 20px; left: 20px; width: 50px; height: 50px;
+            background-color: #0b2a4a; color: white; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            text-decoration: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            font-size: 24px; z-index: 9999;
+        }
+
+        /* 입력 패널 */
+        .input-panel {
+            background: white; padding: 30px; border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            max-width: 900px; width: 100%;
+            margin-bottom: 50px; border-top: 5px solid #0b2a4a;
+        }
+
+        h2 { color: #0b2a4a; margin-top: 0; text-align: center; margin-bottom: 20px; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        .form-input { 
+            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1rem; 
+        }
+        .form-row { display: flex; gap: 10px; }
+        
+        /* 동적 섹션 스타일 */
+        .section-item { 
+            background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; 
+            border-radius: 8px; margin-bottom: 10px; position: relative;
+        }
+        .section-item textarea { height: 80px; resize: vertical; margin-top: 5px; }
+        .btn-del-section {
+            position: absolute; top: 10px; right: 10px; 
+            background: #ffc9c9; color: #c92a2a; border: none; 
+            border-radius: 4px; cursor: pointer; padding: 2px 8px; font-size: 0.8rem;
+        }
+
+        /* Action Item 스타일 */
+        .action-item { display: flex; gap: 5px; margin-bottom: 5px; align-items: center; }
+        .action-who { width: 80px; }
+        .action-due { width: 120px; }
+        .action-what { flex: 1; }
+
+        /* 버튼 */
+        .btn {
+            padding: 10px 20px; border: none; border-radius: 5px; 
+            font-weight: bold; cursor: pointer; color: white; transition: 0.2s;
+        }
+        .btn-add { background-color: #1098ad; width: 100%; margin-bottom: 15px; }
+        .btn-gen { background-color: #0b2a4a; width: 100%; font-size: 1.1rem; padding: 15px; margin-top: 10px; }
+        .btn-word { background-color: #2b8a3e; width: 100%; font-size: 1.1rem; padding: 15px; margin-top: 10px; }
+
+        /* [미리보기 & 인쇄용 A4 스타일] */
+        .sheet {
+            background: white; 
+            width: 210mm; 
+            min-height: 297mm; 
+            padding: 25mm;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            border: 1px solid #dce0e3;
+            display: none; /* 초기엔 숨김 */
+            flex-direction: column;
+        }
+
+        /* 문서 내부 스타일 (워드 저장 시 중요) */
+        .doc-title { 
+            font-size: 24pt; font-weight: bold; text-align: center; margin-bottom: 30px; 
+            font-family: 'Malgun Gothic', sans-serif; 
+        }
+        
+        .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .meta-table th, .meta-table td { border: 1px solid #000; padding: 8px; }
+        .meta-table th { background-color: #f1f3f5; width: 100px; text-align: center; font-weight: bold; }
+
+        .content-section { margin-bottom: 20px; }
+        .section-title { font-size: 14pt; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px; color: #0b2a4a; }
+        .section-body { font-size: 11pt; line-height: 1.6; white-space: pre-wrap; }
+
+        .action-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .action-table th, .action-table td { border: 1px solid #000; padding: 6px; text-align: center; font-size: 10pt; }
+        .action-table th { background-color: #e7f5ff; }
+        .action-table td.left-align { text-align: left; }
+
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="home-btn">🏠</a>
+
+    <div class="input-panel">
+        <h2>📝 회의록 작성</h2>
+        
+        <div class="form-group">
+            <label class="form-label">회의 주제</label>
+            <input type="text" id="topic" class="form-input" placeholder="예: 2026-1학기 졸업논문 심사 계획 회의">
+        </div>
+        <div class="form-row">
+            <div class="form-group" style="flex:1;">
+                <label class="form-label">일시</label>
+                <input type="text" id="date" class="form-input">
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label class="form-label">장소</label>
+                <input type="text" id="place" class="form-input" value="학과장실">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">참석자</label>
+            <input type="text" id="attendees" class="form-input" placeholder="예: 곽새라 교수님, 김철수 조교, 이영희 조교">
+        </div>
+
+        <hr style="margin: 20px 0; border: 0; border-top: 1px dashed #ccc;">
+
+        <label class="form-label">회의 내용 (안건별 정리)</label>
+        <div id="sectionContainer">
+            </div>
+        <button class="btn btn-add" onclick="addSection()">+ 안건 추가하기</button>
+
+        <hr style="margin: 20px 0; border: 0; border-top: 1px dashed #ccc;">
+
+        <label class="form-label">향후 할 일 (Action Item)</label>
+        <div id="actionContainer">
+            </div>
+        <button class="btn btn-add" style="background-color: #748ffc;" onclick="addAction()">+ 할 일 추가하기</button>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-gen" onclick="renderSheet()">📄 회의록 생성 (미리보기)</button>
+        </div>
+    </div>
+
+    <div id="previewSheet" class="sheet"></div>
+    
+    <div id="saveBtnArea" style="display:none; width: 100%; max-width: 900px; margin-bottom: 50px;">
+        <button class="btn btn-word" onclick="exportToWord()">💾 워드 파일(.doc)로 저장</button>
+    </div>
+
+    <script>
+        // 초기화
+        window.onload = function() {
+            const now = new Date();
+            document.getElementById('date').value = `${now.getFullYear()}.${now.getMonth()+1}.${now.getDate()} (${'일월화수목금토'[now.getDay()]}) ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+            
+            // 기본 섹션 1개 추가
+            addSection();
+            addAction();
+        };
+
+        // 섹션 추가
+        function addSection() {
+            const div = document.createElement('div');
+            div.className = 'section-item';
+            div.innerHTML = `
+                <button class="btn-del-section" onclick="this.parentElement.remove()">삭제</button>
+                <input type="text" class="form-input sec-title" placeholder="소제목 (예: 졸업논문 심사 일정)" style="font-weight:bold; margin-bottom:5px;">
+                <textarea class="form-input sec-content" placeholder="내용을 입력하세요. (개조식 추천)"></textarea>
+            `;
+            document.getElementById('sectionContainer').appendChild(div);
+        }
+
+        // Action Item 추가
+        function addAction() {
+            const div = document.createElement('div');
+            div.className = 'action-item';
+            div.innerHTML = `
+                <input type="text" class="form-input action-who" placeholder="담당자">
+                <input type="text" class="form-input action-what" placeholder="할 일 내용">
+                <input type="text" class="form-input action-due" placeholder="기한(날짜)">
+                <button class="btn-del-section" style="position:static;" onclick="this.parentElement.remove()">X</button>
+            `;
+            document.getElementById('actionContainer').appendChild(div);
+        }
+
+        // 미리보기 생성
+        function renderSheet() {
+            const topic = document.getElementById('topic').value || "회의록";
+            const date = document.getElementById('date').value;
+            const place = document.getElementById('place').value;
+            const attendees = document.getElementById('attendees').value;
+
+            // [수정] 제목 크기를 태그에 직접 인라인으로 박아버림 (워드 호환성 강화)
+            let html = `
+                <div class="doc-title" style="font-size: 28pt; font-weight: bold; text-align: center; margin-bottom: 30px; font-family: 'Malgun Gothic', sans-serif;">${topic}</div>
+                
+                <table class="meta-table">
+                    <tr>
+                        <th style="background:#f1f3f5; width:100px;">일시</th><td>${date}</td>
+                        <th style="background:#f1f3f5; width:100px;">장소</th><td>${place}</td>
+                    </tr>
+                    <tr>
+                        <th style="background:#f1f3f5;">참석자</th><td colspan="3">${attendees}</td>
+                    </tr>
+                </table>
+            `;
+
+            // 섹션 내용
+            const sections = document.querySelectorAll('.section-item');
+            sections.forEach(sec => {
+                const title = sec.querySelector('.sec-title').value;
+                const content = sec.querySelector('.sec-content').value;
+                if(title || content) {
+                    html += `
+                        <div class="content-section">
+                            <div class="section-title" style="font-size: 14pt; border-bottom: 2px solid #000; margin-bottom: 10px; color: #0b2a4a;">■ ${title}</div>
+                            <div class="section-body" style="font-size: 11pt; line-height: 1.6;">${content.replace(/\n/g, '<br>')}</div>
+                        </div>
+                    `;
+                }
+            });
+
+            // Action Items
+            const actions = document.querySelectorAll('.action-item');
+            let actionRows = "";
+            let hasAction = false;
+
+            actions.forEach(act => {
+                const who = act.querySelector('.action-who').value;
+                const what = act.querySelector('.action-what').value;
+                const due = act.querySelector('.action-due').value;
+                if(who || what) {
+                    hasAction = true;
+                    // [수정] 확인(Check) 열 삭제됨
+                    actionRows += `
+                        <tr>
+                            <td>${who}</td>
+                            <td class="left-align">${what}</td>
+                            <td>${due}</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            if(hasAction) {
+                // [수정] 확인 열 헤더 삭제
+                html += `
+                    <div class="content-section" style="margin-top: 30px;">
+                        <div class="section-title" style="color:#c92a2a; font-size: 14pt; border-bottom: 2px solid #c92a2a;">■ 향후 추진 계획 (Action Item)</div>
+                        <table class="action-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:20%; background:#e7f5ff;">담당자</th>
+                                    <th style="background:#e7f5ff;">내용</th>
+                                    <th style="width:25%; background:#e7f5ff;">기한</th>
+                                </tr>
+                            </thead>
+                            <tbody>${actionRows}</tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            const sheet = document.getElementById('previewSheet');
+            sheet.innerHTML = html;
+            sheet.style.display = 'flex';
+            document.getElementById('saveBtnArea').style.display = 'block';
+            sheet.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 워드로 저장
+        function exportToWord() {
+            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' " +
+                "xmlns:w='urn:schemas-microsoft-com:office:word' " +
+                "xmlns='http://www.w3.org/TR/REC-html40'> " +
+                "<head><meta charset='utf-8'><title>Export HTML to Word</title>" +
+                "<style>body{font-family:'Malgun Gothic', sans-serif;} table{border-collapse:collapse; width:100%;} td, th{border:1px solid #000; padding:5px;} </style>" +
+                "</head><body>";
+            
+            const footer = "</body></html>";
+            
+            // 미리보기 영역의 HTML을 그대로 가져옴 (인라인 스타일 포함)
+            const sourceHTML = header + document.getElementById("previewSheet").innerHTML + footer;
+
+            const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+            const fileDownload = document.createElement("a");
+            document.body.appendChild(fileDownload);
+            fileDownload.href = source;
+            
+            const topic = document.getElementById('topic').value || "회의록";
+            const date = new Date().toISOString().slice(0,10);
+            fileDownload.download = `[회의록] ${date}_${topic}.doc`;
+            
+            fileDownload.click();
+            document.body.removeChild(fileDownload);
+        }
+    </script>
+</body>
+</html>

@@ -185,11 +185,12 @@
         .tab-btn { flex: 1; padding: 8px; text-align: center; cursor: pointer; font-weight: bold; color: #888; border-bottom: 3px solid transparent; font-size: 0.9rem; }
         .tab-btn.active { color: #0b2a4a; border-bottom-color: #0b2a4a; }
 
-        .grade-select { display: flex; gap: 5px; margin-bottom: 15px; }
+        .grade-select { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; } /* 줄바꿈 허용으로 수정 */
         .grade-opt { 
-            flex: 1; padding: 5px; text-align: center; border: 1px solid #ddd; border-radius: 4px; 
+            flex: 1 1 calc(33.333% - 5px); /* 3개씩 배치되도록 유연하게 조정 */
+            padding: 5px; text-align: center; border: 1px solid #ddd; border-radius: 4px; 
             font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
-            white-space: nowrap; /* [수정] 줄바꿈 방지 */
+            white-space: nowrap; 
         }
         .grade-opt.selected { background: #0b2a4a; color: white; border-color: #0b2a4a; }
 
@@ -275,12 +276,12 @@
                 <input type="text" id="inProfEn" class="form-input" placeholder="ex: Hong Gil-dong">
             </div>
 
-            <div style="display:flex; gap:10px;">
-                <div style="flex:1;">
+            <div style="display:flex; flex-direction: column; gap:10px;">
+                <div>
                     <label class="form-label">강의실 (공통)</label>
                     <input type="text" id="inRoom" class="form-input" placeholder="예: 304호">
                 </div>
-                <div style="flex:1;">
+                <div>
                     <label class="form-label">대상 학년</label>
                     <input type="hidden" id="inGrade" value="1">
                     <div class="grade-select">
@@ -289,7 +290,10 @@
                         <div class="grade-opt" onclick="setGrade(3)" id="g-3">3</div>
                         <div class="grade-opt" onclick="setGrade(4)" id="g-4">4</div>
                         <div class="grade-opt" onclick="setGrade(5)" id="g-5">대학원</div>
+                        <div class="grade-opt" onclick="setGrade(6)" id="g-6">기초</div>
+                        <div class="grade-opt" onclick="setGrade(7)" id="g-7">기타</div>
                     </div>
+                    <input type="text" id="customGradeInput" class="form-input" style="display: none; margin-top: 5px;" placeholder="학년에 표시할 텍스트 입력 (예: 교양)">
                 </div>
             </div>
 
@@ -406,6 +410,10 @@
                     let gradeText;
                     if(c.grade == 5) {
                         gradeText = currentLang === 'kr' ? `대학원` : `Grad`;
+                    } else if (c.grade == 6) {
+                        gradeText = currentLang === 'kr' ? `기초` : `Basic`;
+                    } else if (c.grade == 7) {
+                        gradeText = c.customGrade || (currentLang === 'kr' ? `기타` : `Etc`);
                     } else {
                         gradeText = currentLang === 'kr' ? `${c.grade}학년` : `Year ${c.grade}`;
                     }
@@ -426,7 +434,7 @@
         // 모달 관련 함수
         function openModalNew(d, t) {
             editMode = false; editId = null; tempDay = d; tempTime = t;
-            ['inSubKr','inProfKr','inSubEn','inProfEn','inRoom'].forEach(id => document.getElementById(id).value = "");
+            ['inSubKr','inProfKr','inSubEn','inProfEn','inRoom','customGradeInput'].forEach(id => document.getElementById(id).value = "");
             setGrade(1);
             
             document.getElementById('durationArea').style.display = 'block';
@@ -449,6 +457,12 @@
             document.getElementById('inSubEn').value = t.subEn;
             document.getElementById('inProfEn').value = t.profEn;
             document.getElementById('inRoom').value = t.room;
+            
+            if (t.grade == 7) {
+                document.getElementById('customGradeInput').value = t.customGrade || "";
+            } else {
+                document.getElementById('customGradeInput').value = "";
+            }
             setGrade(t.grade || 1);
 
             document.getElementById('durationArea').style.display = 'none';
@@ -472,6 +486,7 @@
             const profEn = document.getElementById('inProfEn').value.trim();
             const room = document.getElementById('inRoom').value.trim();
             const grade = document.getElementById('inGrade').value;
+            const customGrade = document.getElementById('customGradeInput').value.trim();
 
             if(!subKr) { alert("과목명(국문)은 필수입니다."); return; }
 
@@ -481,6 +496,7 @@
                     t.subKr = subKr; t.profKr = profKr;
                     t.subEn = subEn || subKr; t.profEn = profEn || profKr;
                     t.room = room; t.grade = grade;
+                    t.customGrade = grade == 7 ? customGrade : "";
                 }
             } else {
                 const duration = parseInt(document.querySelector('input[name="duration"]:checked').value);
@@ -489,7 +505,8 @@
                 scheduleData.push({
                     id: Date.now().toString(),
                     day: tempDay, startTime: tempTime, duration,
-                    subKr, profKr, subEn: subEn||subKr, profEn: profEn||profKr, room, grade
+                    subKr, profKr, subEn: subEn||subKr, profEn: profEn||profKr, room, grade,
+                    customGrade: grade == 7 ? customGrade : ""
                 });
             }
             saveData(); renderClasses(); closeModal();
@@ -516,6 +533,12 @@
             document.getElementById('inGrade').value = g;
             document.querySelectorAll('.grade-opt').forEach(el => el.classList.remove('selected'));
             document.getElementById(`g-${g}`).classList.add('selected');
+            
+            if (g == 7) {
+                document.getElementById('customGradeInput').style.display = 'block';
+            } else {
+                document.getElementById('customGradeInput').style.display = 'none';
+            }
         }
 
         function toggleLanguage() {

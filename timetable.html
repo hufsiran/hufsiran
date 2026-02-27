@@ -319,6 +319,10 @@
         let maxPeriod = 9;
         let scheduleData = []; 
         let editMode = false, editId = null, tempDay = 1, tempTime = 1;
+        
+        // [추가된 변수] 교수님별 고유 색상 매핑용
+        let profColorMap = {}; 
+        let nextColorIdx = 0;
 
         window.onload = function() {
             if(localStorage.getItem('hufs_tt_final_v5')) {
@@ -367,9 +371,20 @@
         }
 
         function renderClasses() {
+            // [수정된 부분] 렌더링 시마다 전체 데이터를 스캔하여 등장 순서대로 교수님 색상을 확정합니다.
+            profColorMap = {};
+            nextColorIdx = 0;
+            scheduleData.forEach(c => {
+                let seed = (c.profKr || "").trim() + (c.profEn || "").trim();
+                seed = seed.replace(/\s+/g, '').toLowerCase();
+                if(seed && profColorMap[seed] === undefined) {
+                    profColorMap[seed] = nextColorIdx % 12;
+                    nextColorIdx++;
+                }
+            });
+
             for(let d=1; d<=5; d++) {
                 const dayCol = document.getElementById(`day-${d}`);
-                // [핵심] 그리기 전에 반드시 기존 블록 삭제 (중복 방지)
                 dayCol.querySelectorAll('.class-block').forEach(el => el.remove());
 
                 let dayClasses = scheduleData.filter(c => c.day === d);
@@ -564,11 +579,11 @@
             renderStructure(); saveData();
         }
 
+        // [수정된 부분] 해시 대신 사전에 매핑된 순차 번호를 반환합니다.
         function getColorIndex(str) {
             if(!str) return 0;
             str = str.replace(/\s+/g, '').toLowerCase();
-            let h=0; for(let i=0;i<str.length;i++) h = str.charCodeAt(i) + ((h<<5)-h);
-            return Math.abs(h) % 12;
+            return profColorMap[str] !== undefined ? profColorMap[str] : 0;
         }
 
         function saveData() {

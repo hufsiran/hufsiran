@@ -188,8 +188,18 @@
             <h2>📅 문구 설정</h2>
             <label style="font-size:0.9rem; font-weight:bold;">년/월</label>
             <input type="text" id="semTitleDate" value="2026년 03월" class="live-text" data-target="dispSemTitle">
-            <label style="font-size:0.9rem; font-weight:bold;">근무 기간</label>
-            <input type="text" id="semPeriod" value="2026.03.02 - 2026.06.21" class="live-text" data-target="dispSemPeriod">
+            
+            <label style="font-size:0.9rem; font-weight:bold; margin-top:10px; display:block;">시작일</label>
+            <input type="date" id="semStartDate" value="2026-03-02" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #ced4da; border-radius:5px; margin-bottom:5px;" onchange="syncSemPeriod()">
+            
+            <label style="font-size:0.9rem; font-weight:bold; display:block;">종료일</label>
+            <input type="date" id="semEndDate" value="2026-06-21" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #ced4da; border-radius:5px; margin-bottom:5px;" onchange="syncSemPeriod()">
+            
+            <label style="font-size:0.9rem; font-weight:bold; display:block;">제외 공휴일 (YYYY-MM-DD, 쉼표 구분)</label>
+            <input type="text" id="semHolidaysText" placeholder="예: 2026-05-05, 2026-06-06" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #ced4da; border-radius:5px; margin-bottom:10px;" onchange="renderTaList('semester')">
+            
+            <label style="font-size:0.9rem; font-weight:bold; display:block;">근무 기간(출력용)</label>
+            <input type="text" id="semPeriod" value="2026.03.02 - 2026.06.21" class="live-text" data-target="dispSemPeriod" style="margin-bottom:0;">
         </div>
 
         <div class="card">
@@ -386,6 +396,78 @@
         selectTa(0);
     };
 
+    function syncSemPeriod() {
+        const s = document.getElementById('semStartDate').value.replace(/-/g, '.');
+        const e = document.getElementById('semEndDate').value.replace(/-/g, '.');
+        document.getElementById('semPeriod').value = `${s} - ${e}`;
+        document.getElementById('dispSemPeriod').innerText = `${s} - ${e}`;
+        renderTaList('semester');
+    }
+
+    function calculateExpectedTotalHours(ta) {
+        if(!ta || Object.keys(semesterResult).length === 0) return 0;
+        const startDateStr = document.getElementById('semStartDate').value;
+        const endDateStr = document.getElementById('semEndDate').value;
+        const holidaysText = document.getElementById('semHolidaysText').value;
+        if(!startDateStr || !endDateStr) return 0;
+        
+        const startDate = new Date(startDateStr);
+        const endDate = new Date(endDateStr);
+        if (isNaN(startDate) || isNaN(endDate) || startDate > endDate) return 0;
+
+        const holidays = holidaysText.split(',').map(s => s.trim());
+        let assignedDays = {0:0, 1:0, 2:0, 3:0, 4:0}; 
+        for(let id in semesterResult) {
+            if(semesterResult[id] === ta.name) {
+                let dIdx = parseInt(id.split('-')[0]);
+                assignedDays[dIdx]++;
+            }
+        }
+
+        let totalHours = 0;
+        let currDate = new Date(startDate);
+        while(currDate <= endDate) {
+            let dayOfWeek = currDate.getDay(); 
+            let yyyy = currDate.getFullYear();
+            let mm = String(currDate.getMonth() + 1).padStart(2, '0');
+            let dd = String(currDate.getDate()).padStart(2, '0');
+            let localDateStr = `${yyyy}-${mm}-${dd}`;
+            
+            if(dayOfWeek >= 1 && dayOfWeek <= 5 && !holidays.includes(localDateStr)) {
+                totalHours += assignedDays[dayOfWeek - 1];
+            }
+            currDate.setDate(currDate.getDate() + 1);
+        }
+        return totalHours;
+    }
+
+    function overrideSemesterSlot(id, newName) {
+        const oldName = semesterResult[id];
+        if (newName) {
+            const newTa = semAssistants.find(a => a.name === newName);
+            if (newTa && newTa.impossible.has(id)) {
+                if (!confirm(`⚠️ [${newName}] 조교는 해당 시간에 [불가]를 신청했습니다.\n그래도 강제로 배정하시겠습니까?`)) {
+                    renderSemesterCells(); 
+                    return;
+                }
+            }
+            if (oldName && oldName !== "배정불가") {
+                const oldTa = semAssistants.find(a => a.name === oldName);
+                if (oldTa) oldTa.assigned--;
+            }
+            newTa.assigned++;
+            semesterResult[id] = newName;
+        } else {
+            if (oldName && oldName !== "배정불가") {
+                const oldTa = semAssistants.find(a => a.name === oldName);
+                if (oldTa) oldTa.assigned--;
+            }
+            semesterResult[id] = "배정불가";
+        }
+        renderTaList('semester');
+        renderSemesterCells();
+    }
+
     function switchMainMode(mode) {
         activeMainMode = mode;
         selectedTaIndex = -1; 
@@ -495,8 +577,12 @@
                         <button class="btn-del" onclick="event.stopPropagation(); deleteTa(${idx}, '${mode}')">삭제</button>
                     </div>
                     <div class="ta-info">
-                        목표: ${ta.targetHours}h<br>
-                        누적(${ta.prevHours}) + 배정(<strong>${ta.assigned}</strong>) = ${ta.prevHours + ta.assigned}h
+                        ${mode === 'semester' 
+                            ? `목표: ${ta.targetHours}h | 예상 실근무: <strong style="color:#fa5252">${calculateExpectedTotalHours(ta)}h</strong><br>
+                               누적(${ta.prevHours}) + 주당배정(<strong>${ta.assigned}</strong>) = ${ta.prevHours + ta.assigned}h`
+                            : `목표: ${ta.targetHours}h<br>
+                               누적(${ta.prevHours}) + 배정(<strong>${ta.assigned}</strong>) = ${ta.prevHours + ta.assigned}h`
+                        }
                     </div>
                     <div class="progress-bg">
                         <div class="bar-prev" style="width: ${pctPrev}%"></div>
@@ -593,7 +679,22 @@
                 const name = semesterResult[id];
                 if (name) {
                     td.classList.add('cell-assigned');
-                    td.innerText = name;
+                    
+                    let options = `<option value="">--배정 해제--</option>`;
+                    semAssistants.forEach(a => {
+                        options += `<option value="${a.name}" ${a.name === name ? 'selected' : ''}>${a.name}</option>`;
+                    });
+                    
+                    td.innerHTML = `
+                        <div style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+                            <select onchange="overrideSemesterSlot('${id}', this.value)" onclick="event.stopPropagation()" 
+                                    style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;">
+                                ${name === "배정불가" ? `<option value="" selected>배정불가</option>` : ''}
+                                ${options}
+                            </select>
+                            <span style="pointer-events:none;">${name}</span>
+                        </div>
+                    `;
                     td.style.backgroundColor = name === "배정불가" ? "#ffc9c9" : getNameColor(name);
                 }
             }

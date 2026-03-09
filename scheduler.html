@@ -856,10 +856,29 @@
         alert("방학 근무표 배정 완료!");
     }
 
+    // [수정된 색상 배정 알고리즘]
+    let taColorMap = {};
+    let nextColorIdx = 0;
+
     function getNameColor(str) {
-        let hash = 0;
-        for (let i=0; i<str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-        return pastelColors[Math.abs(hash) % pastelColors.length];
+        if (!str) return pastelColors[0];
+        
+        // 새로운 이름이 들어오면 순서대로 고유 인덱스 부여
+        if (taColorMap[str] === undefined) {
+            taColorMap[str] = nextColorIdx++;
+        }
+        
+        let idx = taColorMap[str];
+        
+        // 0~9번까지는 기존에 지정해 둔 10개의 파스텔 색상 사용
+        if (idx < pastelColors.length) {
+            return pastelColors[idx];
+        } 
+        // 10번(11번째 사람)부터는 색상환(Hue)을 황금각(137.5도)으로 쪼개서 무한대로 새로운 파스텔톤 자동 생성
+        else {
+            let hue = Math.floor((idx * 137.5) % 360);
+            return `hsl(${hue}, 75%, 80%)`;
+        }
     }
 
     function downloadImage(mode) {

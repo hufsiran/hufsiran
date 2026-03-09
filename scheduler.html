@@ -366,7 +366,6 @@
     const times = [9, 10, 11, 12, 13, 14, 15, 16]; 
     const days = ["월", "화", "수", "목", "금"];
     
-    // [수정됨] 회색 제외, 선명하고 구분 잘되는 색상 10종
     const pastelColors = [
         "#FFADAD", // Red
         "#FFD6A5", // Orange
@@ -487,7 +486,6 @@
             document.getElementById('btnSemInput').classList.toggle('active', sub === 'input');
             document.getElementById('btnSemView').classList.toggle('active', sub === 'view');
             
-            // [NEW] 학기 중 멘트 변경
             const msg = document.getElementById('msgSemester');
             if (sub === 'input') msg.innerText = "조교 선택 후 시간표를 클릭하여 '불가(X)' 체크";
             else msg.innerText = "배정 결과 확인 후 근무표 이미지로 저장";
@@ -499,7 +497,6 @@
             document.getElementById('btnVacInput').classList.toggle('active', sub === 'input');
             document.getElementById('btnVacView').classList.toggle('active', sub === 'view');
             
-            // [NEW] 방학 중 멘트 변경
             const msg = document.getElementById('msgVacation');
             if (sub === 'holiday') msg.innerText = "달력에서 설날, 공휴일 등을 클릭하여 휴일 지정";
             else if (sub === 'input') msg.innerText = "조교 선택 후 시간표를 클릭하여 '불가(X)' 체크";
@@ -552,6 +549,7 @@
         renderTaList('vacation'); renderFooterNames('vacation'); selectTa(vacAssistants.length-1);
     }
 
+    // [수정됨] 직관적인 텍스트 및 게이지 바 반영 로직
     function renderTaList(mode) {
         const list = document.getElementById(mode === 'semester' ? 'taListSemester' : 'taListVacation');
         const arr = mode === 'semester' ? semAssistants : vacAssistants;
@@ -567,7 +565,25 @@
             const badgeClass = ta.type === 'grad' ? 'badge-grad' : 'badge-und';
             
             let pctPrev = (ta.prevHours / ta.targetHours) * 100;
-            let pctCurr = (ta.assigned / ta.targetHours) * 100;
+            let pctCurr = 0;
+            let taInfoHtml = "";
+
+            if (mode === 'semester') {
+                const expTotal = calculateExpectedTotalHours(ta);
+                // 게이지 바(pctCurr)를 '주당 배정 시간'이 아니라 '새로 계산된 총 예상 근무시간' 기준으로 채움
+                pctCurr = (expTotal / ta.targetHours) * 100;
+                taInfoHtml = `
+                    목표: ${ta.targetHours}h (주당 ${ta.assigned}h)<br>
+                    누적(${ta.prevHours}) + 신규(<strong style="color:#fa5252">${expTotal}</strong>) = <strong>${ta.prevHours + expTotal}h</strong>
+                `;
+            } else {
+                pctCurr = (ta.assigned / ta.targetHours) * 100;
+                taInfoHtml = `
+                    목표: ${ta.targetHours}h<br>
+                    누적(${ta.prevHours}) + 신규(<strong>${ta.assigned}</strong>) = <strong>${ta.prevHours + ta.assigned}h</strong>
+                `;
+            }
+
             if (pctPrev + pctCurr > 100) {} 
 
             li.innerHTML = `
@@ -577,12 +593,7 @@
                         <button class="btn-del" onclick="event.stopPropagation(); deleteTa(${idx}, '${mode}')">삭제</button>
                     </div>
                     <div class="ta-info">
-                        ${mode === 'semester' 
-                            ? `목표: ${ta.targetHours}h | 예상 실근무: <strong style="color:#fa5252">${calculateExpectedTotalHours(ta)}h</strong><br>
-                               누적(${ta.prevHours}) + 주당배정(<strong>${ta.assigned}</strong>) = ${ta.prevHours + ta.assigned}h`
-                            : `목표: ${ta.targetHours}h<br>
-                               누적(${ta.prevHours}) + 배정(<strong>${ta.assigned}</strong>) = ${ta.prevHours + ta.assigned}h`
-                        }
+                        ${taInfoHtml}
                     </div>
                     <div class="progress-bg">
                         <div class="bar-prev" style="width: ${pctPrev}%"></div>
@@ -671,7 +682,6 @@
 
             if (subModeSem === 'input' && selectedTaIndex !== -1) {
                 if (semAssistants[selectedTaIndex].impossible.has(id)) {
-                    // [수정] 불가 텍스트를 JS에서 제어, CSS는 스타일만
                     td.classList.add('cell-impossible');
                     td.innerText = "불가"; 
                 }
@@ -706,23 +716,73 @@
         semAssistants.forEach(a => a.assigned = 0);
         semesterResult = {};
 
-        let slots = [];
-        days.forEach((d, dIdx) => times.forEach(t => { if(t!==12) slots.push(`${dIdx}-${t}`); }));
-        slots.sort(() => Math.random() - 0.5);
+        let allSlots = [];
+        days.forEach((d, dIdx) => times.forEach(t => { 
+            if(t!==12) {
+                allSlots.push(`${dIdx}-${t}`);
+                semesterResult[`${dIdx}-${t}`] = null; 
+            }
+        }));
 
-        slots.forEach(id => {
-            let cands = semAssistants.filter(a => !a.impossible.has(id));
-            if (cands.length === 0) semesterResult[id] = "배정불가";
-            else {
-                cands.sort((a,b) => {
-                    const ratioA = (a.prevHours + a.assigned) / a.targetHours;
-                    const ratioB = (b.prevHours + b.assigned) / b.targetHours;
-                    return ratioA - ratioB;
+        function getCandidates(slotArray) {
+            let cands = semAssistants.filter(ta => slotArray.every(s => !ta.impossible.has(s) && semesterResult[s] === null));
+            cands.sort((a, b) => {
+                const ratioA = (a.prevHours + a.assigned) / a.targetHours;
+                const ratioB = (b.prevHours + b.assigned) / b.targetHours;
+                return ratioA - ratioB;
+            });
+            return cands;
+        }
+
+        function assignBlock(block) {
+            let cands = getCandidates(block);
+            if (cands.length > 0) {
+                let cand = cands[0];
+                block.forEach(s => {
+                    semesterResult[s] = cand.name;
+                    cand.assigned++;
                 });
+                return true;
+            }
+            return false;
+        }
+
+        let dayIndices = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5);
+
+        dayIndices.forEach(d => {
+            let b4 = [[13,14,15,16]];
+            let b3 = [[9,10,11], [13,14,15], [14,15,16]].sort(() => Math.random() - 0.5);
+            let b2 = [[9,10], [10,11], [13,14], [14,15], [15,16]].sort(() => Math.random() - 0.5);
+            
+            [b4, b3, b2].forEach(group => {
+                group.forEach(timesArr => {
+                    let block = timesArr.map(t => `${d}-${t}`);
+                    if (block.every(s => semesterResult[s] === null)) {
+                        assignBlock(block);
+                    }
+                });
+            });
+
+            let crossBlocks = [[10,11,13], [11,13,14], [9,10,11,13], [11,13,14,15]].sort(() => Math.random() - 0.5);
+            crossBlocks.forEach(timesArr => {
+                let block = timesArr.map(t => `${d}-${t}`);
+                if (block.every(s => semesterResult[s] === null)) {
+                    assignBlock(block);
+                }
+            });
+        });
+
+        let remainingSlots = allSlots.filter(s => semesterResult[s] === null).sort(() => Math.random() - 0.5);
+        remainingSlots.forEach(s => {
+            let cands = getCandidates([s]);
+            if (cands.length > 0) {
+                semesterResult[s] = cands[0].name;
                 cands[0].assigned++;
-                semesterResult[id] = cands[0].name;
+            } else {
+                semesterResult[s] = "배정불가";
             }
         });
+
         renderTaList('semester');
         setSubMode('semester', 'view');
         alert("학기 근무표 배정 완료!");
@@ -789,7 +849,6 @@
     function renderCalendarCells() {
         document.querySelectorAll('#vacationBody td[data-date]').forEach(td => {
             const key = td.dataset.date;
-            // [수정됨] 내부 내용을 모두 지우지 않고, 날짜 숫자(첫 번째 자식)만 남기고 나머지를 지움
             while(td.childNodes.length > 1) td.removeChild(td.lastChild);
             
             td.classList.remove('cell-holiday', 'cell-impossible');
@@ -798,7 +857,6 @@
                 td.classList.add('cell-holiday');
             } else if (subModeVac === 'input' && selectedTaIndex !== -1) {
                 if (vacAssistants[selectedTaIndex].impossible.has(key)) {
-                     // [수정완료] 날짜를 덮어쓰지 않고, div를 추가하여 '불가' 표시
                     td.classList.add('cell-impossible');
                     const div = document.createElement('div');
                     div.innerText = "불가";
@@ -856,25 +914,21 @@
         alert("방학 근무표 배정 완료!");
     }
 
-    // [수정된 색상 배정 알고리즘]
     let taColorMap = {};
     let nextColorIdx = 0;
 
     function getNameColor(str) {
         if (!str) return pastelColors[0];
         
-        // 새로운 이름이 들어오면 순서대로 고유 인덱스 부여
         if (taColorMap[str] === undefined) {
             taColorMap[str] = nextColorIdx++;
         }
         
         let idx = taColorMap[str];
         
-        // 0~9번까지는 기존에 지정해 둔 10개의 파스텔 색상 사용
         if (idx < pastelColors.length) {
             return pastelColors[idx];
         } 
-        // 10번(11번째 사람)부터는 색상환(Hue)을 황금각(137.5도)으로 쪼개서 무한대로 새로운 파스텔톤 자동 생성
         else {
             let hue = Math.floor((idx * 137.5) % 360);
             return `hsl(${hue}, 75%, 80%)`;

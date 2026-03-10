@@ -716,7 +716,7 @@ function generateSemester() {
         semAssistants.forEach(a => a.assigned = 0);
         semesterResult = {};
 
-        // [추가] 1일 최대 4시간 캡 및 요일 쿨타임 페널티를 위한 일일 근무 시간 트래커
+        // 1일 최대 4시간 캡 및 요일 쿨타임 페널티를 위한 일일 근무 시간 트래커
         let dailyHours = {};
         semAssistants.forEach(a => {
             dailyHours[a.name] = { 0:0, 1:0, 2:0, 3:0, 4:0 };
@@ -730,26 +730,39 @@ function generateSemester() {
             }
         }));
 
-        // 후보자 찾기 및 정렬 로직 (하드/소프트 조건 적용)
+        // 후보자 찾기 및 정렬 로직 (하이브리드 조건 적용)
         function getCandidates(slotArray, dayIdx) {
             let blockSize = slotArray.length;
             let cands = semAssistants.filter(ta => {
-                // 1. 해당 슬롯들에 불가가 없는가?
                 let canWork = slotArray.every(s => !ta.impossible.has(s) && semesterResult[s] === null);
-                // 2. 하드 캡(절대 규칙): 이 블록을 더했을 때 당일 4시간을 초과하지 않는가?
+                // 하드 캡(절대 규칙): 1일 4시간 초과 금지
                 let notExceedCap = (dailyHours[ta.name][dayIdx] + blockSize) <= 4;
                 return canWork && notExceedCap;
             });
 
+            // 전체 조교 중 최대 진도율 계산 (격차 확인용)
+            let maxRatio = -Infinity;
+            semAssistants.forEach(a => {
+                let r = (a.prevHours + a.assigned) / a.targetHours;
+                if(r > maxRatio) maxRatio = r;
+            });
+
             cands.sort((a, b) => {
-                // 소프트 룰 1(분산 규칙): 오늘 이미 근무가 배정된 사람(쿨타임 페널티)은 무조건 후순위로 밀어냄
+                const ratioA = (a.prevHours + a.assigned) / a.targetHours;
+                const ratioB = (b.prevHours + b.assigned) / b.targetHours;
+
+                // [하이브리드 핵심 룰] 1등과 15%(0.15) 이상 격차가 벌어진 조교는 워라밸(요일 분산) 룰 무시하고 최우선 배정
+                let isABehind = (maxRatio - ratioA >= 0.15);
+                let isBBehind = (maxRatio - ratioB >= 0.15);
+
+                if (isABehind && !isBBehind) return -1;
+                if (!isABehind && isBBehind) return 1;
+
+                // 둘 다 뒤처짐 대상이거나 둘 다 아니면, 기존 워라밸(요일 쿨타임) 적용
                 let workedA = dailyHours[a.name][dayIdx] > 0 ? 1 : 0;
                 let workedB = dailyHours[b.name][dayIdx] > 0 ? 1 : 0;
                 if (workedA !== workedB) return workedA - workedB;
 
-                // 소프트 룰 2(턴제 배정): 전체 진도율이 낮은 사람 우선 (라운드 로빈 효과)
-                const ratioA = (a.prevHours + a.assigned) / a.targetHours;
-                const ratioB = (b.prevHours + b.assigned) / b.targetHours;
                 return ratioA - ratioB;
             });
             return cands;

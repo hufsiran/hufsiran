@@ -711,10 +711,16 @@
         });
     }
 
-    function generateSemester() {
+function generateSemester() {
         if (semAssistants.length === 0) return alert("조교 없음");
         semAssistants.forEach(a => a.assigned = 0);
         semesterResult = {};
+
+        // [추가] 1일 최대 4시간 캡 및 요일 쿨타임 페널티를 위한 일일 근무 시간 트래커
+        let dailyHours = {};
+        semAssistants.forEach(a => {
+            dailyHours[a.name] = { 0:0, 1:0, 2:0, 3:0, 4:0 };
+        });
 
         let allSlots = [];
         days.forEach((d, dIdx) => times.forEach(t => { 
@@ -724,9 +730,24 @@
             }
         }));
 
-        function getCandidates(slotArray) {
-            let cands = semAssistants.filter(ta => slotArray.every(s => !ta.impossible.has(s) && semesterResult[s] === null));
+        // 후보자 찾기 및 정렬 로직 (하드/소프트 조건 적용)
+        function getCandidates(slotArray, dayIdx) {
+            let blockSize = slotArray.length;
+            let cands = semAssistants.filter(ta => {
+                // 1. 해당 슬롯들에 불가가 없는가?
+                let canWork = slotArray.every(s => !ta.impossible.has(s) && semesterResult[s] === null);
+                // 2. 하드 캡(절대 규칙): 이 블록을 더했을 때 당일 4시간을 초과하지 않는가?
+                let notExceedCap = (dailyHours[ta.name][dayIdx] + blockSize) <= 4;
+                return canWork && notExceedCap;
+            });
+
             cands.sort((a, b) => {
+                // 소프트 룰 1(분산 규칙): 오늘 이미 근무가 배정된 사람(쿨타임 페널티)은 무조건 후순위로 밀어냄
+                let workedA = dailyHours[a.name][dayIdx] > 0 ? 1 : 0;
+                let workedB = dailyHours[b.name][dayIdx] > 0 ? 1 : 0;
+                if (workedA !== workedB) return workedA - workedB;
+
+                // 소프트 룰 2(턴제 배정): 전체 진도율이 낮은 사람 우선 (라운드 로빈 효과)
                 const ratioA = (a.prevHours + a.assigned) / a.targetHours;
                 const ratioB = (b.prevHours + b.assigned) / b.targetHours;
                 return ratioA - ratioB;
@@ -734,13 +755,14 @@
             return cands;
         }
 
-        function assignBlock(block) {
-            let cands = getCandidates(block);
+        function assignBlock(block, dayIdx) {
+            let cands = getCandidates(block, dayIdx);
             if (cands.length > 0) {
                 let cand = cands[0];
                 block.forEach(s => {
                     semesterResult[s] = cand.name;
                     cand.assigned++;
+                    dailyHours[cand.name][dayIdx]++;
                 });
                 return true;
             }
@@ -758,7 +780,7 @@
                 group.forEach(timesArr => {
                     let block = timesArr.map(t => `${d}-${t}`);
                     if (block.every(s => semesterResult[s] === null)) {
-                        assignBlock(block);
+                        assignBlock(block, d);
                     }
                 });
             });
@@ -767,17 +789,20 @@
             crossBlocks.forEach(timesArr => {
                 let block = timesArr.map(t => `${d}-${t}`);
                 if (block.every(s => semesterResult[s] === null)) {
-                    assignBlock(block);
+                    assignBlock(block, d);
                 }
             });
         });
 
+        // 마지막 찌끄레기 시간들 (1시간 단위 땜빵)
         let remainingSlots = allSlots.filter(s => semesterResult[s] === null).sort(() => Math.random() - 0.5);
         remainingSlots.forEach(s => {
-            let cands = getCandidates([s]);
+            let dayIdx = parseInt(s.split('-')[0]);
+            let cands = getCandidates([s], dayIdx);
             if (cands.length > 0) {
                 semesterResult[s] = cands[0].name;
                 cands[0].assigned++;
+                dailyHours[cands[0].name][dayIdx]++;
             } else {
                 semesterResult[s] = "배정불가";
             }

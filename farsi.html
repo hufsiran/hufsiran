@@ -7,56 +7,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { 
-            font-family: 'Noto Sans KR', sans-serif; 
-            background-color: #f4f7f6; 
-            color: #333; 
-            padding-top: 80px; 
-        }
-        .header {
-            position: fixed; top: 0; left: 0; width: 100%;
-            background-color: #2c3e50;
-            padding: 15px 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f4f7f6; color: #333; padding-top: 80px; }
+        .header { position: fixed; top: 0; left: 0; width: 100%; background-color: #2c3e50; padding: 15px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 1000; }
         .header-title { color: #fff; font-size: 1.2rem; font-weight: 700; margin-bottom: 10px; text-align: center; }
-        .search-box {
-            width: 100%; padding: 12px 15px; border: none; border-radius: 8px;
-            font-size: 1rem; font-family: inherit; outline: none;
-        }
+        .search-box { width: 100%; padding: 12px 15px; border: none; border-radius: 8px; font-size: 1rem; font-family: inherit; outline: none; }
         .container { padding: 15px; max-width: 600px; margin: 0 auto; }
-        
-        .card {
-            background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 5px solid #3498db;
-            transition: all 0.2s;
-        }
+        .card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 5px solid #3498db; transition: all 0.2s; }
         .card:active { transform: scale(0.98); }
-        
-        .tag {
-            display: inline-block; padding: 4px 8px; border-radius: 4px; 
-            font-size: 0.75rem; font-weight: bold; color: #fff; margin-bottom: 8px;
-        }
+        .tag { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; color: #fff; margin-bottom: 8px; }
         .tag.urgent { background-color: #e74c3c; } 
         .tag.office { background-color: #2ecc71; } 
         .tag.escape { background-color: #f39c12; } 
         .tag.basic { background-color: #9b59b6; } 
-        
         .ko-text { font-size: 1.1rem; font-weight: 700; margin-bottom: 15px; color: #2c3e50; }
-        .pronunciation { 
-            font-size: 1.2rem; font-weight: 700; color: #e74c3c; 
-            background-color: #fff0f0; padding: 10px; border-radius: 8px; margin-bottom: 10px;
-        }
-        .fa-text { 
-            font-family: 'Vazirmatn', sans-serif; font-size: 1.4rem; color: #7f8c8d; 
-            text-align: right; direction: rtl; margin-bottom: 10px;
-        }
-        .copy-btn {
-            width: 100%; padding: 10px; border: none; border-radius: 6px;
-            background-color: #ecf0f1; color: #7f8c8d; font-weight: bold; font-size: 0.9rem;
-            cursor: pointer; transition: 0.2s;
-        }
+        .pronunciation { font-size: 1.2rem; font-weight: 700; color: #e74c3c; background-color: #fff0f0; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+        .fa-text { font-family: 'Vazirmatn', sans-serif; font-size: 1.4rem; color: #7f8c8d; text-align: right; direction: rtl; margin-bottom: 10px; }
+        .copy-btn { width: 100%; padding: 10px; border: none; border-radius: 6px; background-color: #ecf0f1; color: #7f8c8d; font-weight: bold; font-size: 0.9rem; cursor: pointer; transition: 0.2s; }
         .copy-btn:active { background-color: #bdc3c7; }
         .no-result { text-align: center; color: #95a5a6; padding: 30px; display: none; }
     </style>
@@ -69,85 +35,290 @@
     </div>
 
     <div class="container" id="cardContainer">
+        <div class="card" data-keyword="몰라요 모릅니다 몰라요">
+            <span class="tag escape">#회피기</span>
+            <div class="ko-text">몰라요</div>
+            <div class="pronunciation">네미두남</div>
+            <div class="fa-text">نمی‌دونم</div>
+            <button class="copy-btn" onclick="copyText('نمی‌دونم')">📋 페르시아어 복사</button>
         </div>
+        <div class="card" data-keyword="기억 안나 까먹 기억이 안 나요">
+            <span class="tag escape">#회피기</span>
+            <div class="ko-text">기억이 안 나요</div>
+            <div class="pronunciation">여담 니스트</div>
+            <div class="fa-text">یادم نیست</div>
+            <button class="copy-btn" onclick="copyText('یادم نیست')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="정확히 몰라요 정확히는 모르겠습니다">
+            <span class="tag escape">#회피기</span>
+            <div class="ko-text">정확히는 모르겠습니다</div>
+            <div class="pronunciation">다기간 네미두남</div>
+            <div class="fa-text">دقیقاً نمی‌دونم</div>
+            <button class="copy-btn" onclick="copyText('دقیقاً نمی‌دونم')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="못해요 한국어 영어 죄송하지만, 저 페르시아어 잘 못해요.">
+            <span class="tag escape">#회피기</span>
+            <div class="ko-text">죄송하지만, 저 페르시아어 잘 못해요.</div>
+            <div class="pronunciation">베바크쉬드, 만 쿱 파르시 발라드 니스탐</div>
+            <div class="fa-text">ببخشید، من خوب فارسی بلد نیستم</div>
+            <button class="copy-btn" onclick="copyText('ببخشید، من خوب فارسی بلد نیستم')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="적어 글씨 스펠링 여기에 적어주시겠어요?">
+            <span class="tag escape">#회피기</span>
+            <div class="ko-text">여기에 적어주시겠어요?</div>
+            <div class="pronunciation">미쉐 인저 베네비시드?</div>
+            <div class="fa-text">میشه اینجا بنویسید؟</div>
+            <button class="copy-btn" onclick="copyText('میشه اینجا بنویسید؟')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="이메일 메일 보내 이메일로 보내주세요.">
+            <span class="tag escape">#회피기</span>
+            <div class="ko-text">이메일로 보내주세요.</div>
+            <div class="pronunciation">롯판 이메일 베페레스티드</div>
+            <div class="fa-text">لطفاً ایمیل بفرستید</div>
+            <button class="copy-btn" onclick="copyText('لطفاً ایمیل بفرستید')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="전화 연락 부를게요 대장 조교 지금 OOO에게 전화할게요.">
+            <span class="tag escape">#회피기</span>
+            <div class="ko-text">지금 OOO에게 전화할게요.</div>
+            <div class="pronunciation">알언 베 OOO 장 미자남</div>
+            <div class="fa-text">الان به 000 زنگ می زنم</div>
+            <button class="copy-btn" onclick="copyText('الان به 000 زنگ می زنم')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="나중에 다시 연락 나중에 다시 연락드릴게요.">
+            <span class="tag escape">#회피기</span>
+            <div class="ko-text">나중에 다시 연락드릴게요.</div>
+            <div class="pronunciation">바단 도버레 버 쇼버 타버스 미기람</div>
+            <div class="fa-text">بعداً دوباره با شما تماس می‌گیرم</div>
+            <button class="copy-btn" onclick="copyText('بعداً دوباره با شما تماس می‌گیرم')">📋 페르시아어 복사</button>
+        </div>
+
+        <div class="card" data-keyword="인사 안녕 안녕하세요">
+            <span class="tag urgent">#급할때</span>
+            <div class="ko-text">안녕하세요</div>
+            <div class="pronunciation">살럼</div>
+            <div class="fa-text">سلام</div>
+            <button class="copy-btn" onclick="copyText('سلام')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="어서오세요 말씀하세요 여기 어서 오세요 / 말씀하세요 / 여기 있습니다">
+            <span class="tag urgent">#급할때</span>
+            <div class="ko-text">어서 오세요 / 말씀하세요 / 여기 있습니다</div>
+            <div class="pronunciation">베파르머이드</div>
+            <div class="fa-text">بفرمایید</div>
+            <button class="copy-btn" onclick="copyText('بفرمایید')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="알겠 이해 알겠습니다 / 이해했습니다">
+            <span class="tag urgent">#급할때</span>
+            <div class="ko-text">알겠습니다 / 이해했습니다</div>
+            <div class="pronunciation">파흐미담</div>
+            <div class="fa-text">فهمیدم</div>
+            <button class="copy-btn" onclick="copyText('فهمیدم')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="네 아니요 응 네 / 아니요">
+            <span class="tag urgent">#급할때</span>
+            <div class="ko-text">네 / 아니요</div>
+            <div class="pronunciation">발레 / 나</div>
+            <div class="fa-text">بله / نه</div>
+            <button class="copy-btn" onclick="copyText('بله / نه')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="다끝 완료 다 되었습니다 / 끝났습니다">
+            <span class="tag urgent">#급할때</span>
+            <div class="ko-text">다 되었습니다 / 끝났습니다</div>
+            <div class="pronunciation">타멈 쇼드</div>
+            <div class="fa-text">تمام شد</div>
+            <button class="copy-btn" onclick="copyText('تمام شد')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="기다려 잠시만 잠시만 기다려주세요">
+            <span class="tag urgent">#급할때</span>
+            <div class="ko-text">잠시만 기다려주세요</div>
+            <div class="pronunciation">옉 라흐제 사브르 코니드 롯판</div>
+            <div class="fa-text">یک لحظه صبر کنید لطفاً</div>
+            <button class="copy-btn" onclick="copyText('یک لحظه صبر کنید لطفاً')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="문제 괜찮 알겠 문제없습니다 / 괜찮습니다">
+            <span class="tag urgent">#급할때</span>
+            <div class="ko-text">문제없습니다 / 괜찮습니다</div>
+            <div class="pronunciation">모쉬켈리 니스트</div>
+            <div class="fa-text">مشکلی نیست</div>
+            <button class="copy-btn" onclick="copyText('مشکلی نیست')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="다시 한번 다시 말씀해 주세요">
+            <span class="tag urgent">#급할때</span>
+            <div class="ko-text">다시 말씀해 주세요</div>
+            <div class="pronunciation">롯판 도버레 베기드</div>
+            <div class="fa-text">لطفاً دوباره بگید</div>
+            <button class="copy-btn" onclick="copyText('لطفاً دوباره بگید')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="필요 이거 이거 필요한가요?">
+            <span class="tag urgent">#급할때</span>
+            <div class="ko-text">이거 필요한가요?</div>
+            <div class="pronunciation">인 러제메?</div>
+            <div class="fa-text">این لازمه؟</div>
+            <button class="copy-btn" onclick="copyText('این لازمه؟')">📋 페르시아어 복사</button>
+        </div>
+
+        <div class="card" data-keyword="교수 교수님">
+            <span class="tag office">#실무단어</span>
+            <div class="ko-text">교수님</div>
+            <div class="pronunciation">오스터드</div>
+            <div class="fa-text">استاد</div>
+            <button class="copy-btn" onclick="copyText('استاد')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="서명 사인 결재 서명(사인) / 여기에 서명해 주세요.">
+            <span class="tag office">#실무단어</span>
+            <div class="ko-text">서명(사인) / 여기에 서명해 주세요.</div>
+            <div class="pronunciation">엠자 / 롯판 인저 엠저 코니드</div>
+            <div class="fa-text">امضا / لطفاً اینجا امضا کنید</div>
+            <button class="copy-btn" onclick="copyText('امضا / لطفاً اینجا امضا کنید')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="프린트 복사 인쇄 프린트 / 복사 / 복사할까요?">
+            <span class="tag office">#실무단어</span>
+            <div class="ko-text">프린트 / 복사 / 복사할까요?</div>
+            <div class="pronunciation">찹 / 코피 / 코피 코남?</div>
+            <div class="fa-text">چاپ / کپی / کپی کنم؟</div>
+            <button class="copy-btn" onclick="copyText('چاپ / کپی / کپی کنم؟')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="사무실 행정실 행정실 / 사무실">
+            <span class="tag office">#실무단어</span>
+            <div class="ko-text">행정실 / 사무실</div>
+            <div class="pronunciation">에더레 / 다프타르</div>
+            <div class="fa-text">اداره / دفتر</div>
+            <button class="copy-btn" onclick="copyText('اداره / دفتر')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="수업 강의실 수업 / 강의실">
+            <span class="tag office">#실무단어</span>
+            <div class="ko-text">수업 / 강의실</div>
+            <div class="pronunciation">켈러스</div>
+            <div class="fa-text">کلاس</div>
+            <button class="copy-btn" onclick="copyText('کلاس')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="시험 시험">
+            <span class="tag office">#실무단어</span>
+            <div class="ko-text">시험</div>
+            <div class="pronunciation">엠테헌</div>
+            <div class="fa-text">امتحان</div>
+            <button class="copy-btn" onclick="copyText('امتحان')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="종이 a4 종이">
+            <span class="tag office">#실무단어</span>
+            <div class="ko-text">종이</div>
+            <div class="pronunciation">커가즈</div>
+            <div class="fa-text">کاغذ</div>
+            <button class="copy-btn" onclick="copyText('کاغذ')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="대학교 대학교">
+            <span class="tag office">#실무단어</span>
+            <div class="ko-text">대학교</div>
+            <div class="pronunciation">더네쉬거</div>
+            <div class="fa-text">دانشگاه</div>
+            <button class="copy-btn" onclick="copyText('دانشگاه')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="책 교재 책">
+            <span class="tag office">#실무단어</span>
+            <div class="ko-text">책</div>
+            <div class="pronunciation">케텁</div>
+            <div class="fa-text">کتاب</div>
+            <button class="copy-btn" onclick="copyText('کتاب')">📋 페르시아어 복사</button>
+        </div>
+
+        <div class="card" data-keyword="제발 부디 제발, 부디 (Please)">
+            <span class="tag basic">#기본단어</span>
+            <div class="ko-text">제발, 부디 (Please)</div>
+            <div class="pronunciation">롯판</div>
+            <div class="fa-text">لطفاً</div>
+            <button class="copy-btn" onclick="copyText('لطفاً')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="연락 연락">
+            <span class="tag basic">#기본단어</span>
+            <div class="ko-text">연락</div>
+            <div class="pronunciation">타머스</div>
+            <div class="fa-text">تماس</div>
+            <button class="copy-btn" onclick="copyText('تماس')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="지금 당장 지금">
+            <span class="tag basic">#기본단어</span>
+            <div class="ko-text">지금</div>
+            <div class="pronunciation">알언</div>
+            <div class="fa-text">الان</div>
+            <button class="copy-btn" onclick="copyText('الان')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="오늘 오늘">
+            <span class="tag basic">#기본단어</span>
+            <div class="ko-text">오늘</div>
+            <div class="pronunciation">엠루즈</div>
+            <div class="fa-text">امروز</div>
+            <button class="copy-btn" onclick="copyText('امروز')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="내일 내일">
+            <span class="tag basic">#기본단어</span>
+            <div class="ko-text">내일</div>
+            <div class="pronunciation">파르더</div>
+            <div class="fa-text">فردا</div>
+            <button class="copy-btn" onclick="copyText('فردا')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="다음주 다음 주">
+            <span class="tag basic">#기본단어</span>
+            <div class="ko-text">다음 주</div>
+            <div class="pronunciation">하프테-예 바드</div>
+            <div class="fa-text">هفته‌ی بعد</div>
+            <button class="copy-btn" onclick="copyText('هفته‌ی بعد')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="지난주 지난 주">
+            <span class="tag basic">#기본단어</span>
+            <div class="ko-text">지난 주</div>
+            <div class="pronunciation">하프테-예 피쉬</div>
+            <div class="fa-text">هفته‌ی پیش</div>
+            <button class="copy-btn" onclick="copyText('هفته‌ی پیش')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="주말 토요일 일요일 주말">
+            <span class="tag basic">#기본단어</span>
+            <div class="ko-text">주말</div>
+            <div class="pronunciation">어카레 하프테</div>
+            <div class="fa-text">آخر هفته</div>
+            <button class="copy-btn" onclick="copyText('آخر هفته')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="휴일 쉬는날 방학 휴일 / 쉬는 날">
+            <span class="tag basic">#기본단어</span>
+            <div class="ko-text">휴일 / 쉬는 날</div>
+            <div class="pronunciation">타틸</div>
+            <div class="fa-text">تعطیل</div>
+            <button class="copy-btn" onclick="copyText('تعطیل')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="필요 필요">
+            <span class="tag basic">#기본단어</span>
+            <div class="ko-text">필요</div>
+            <div class="pronunciation">라젬 / 니여즈</div>
+            <div class="fa-text">لازم / نیاز</div>
+            <button class="copy-btn" onclick="copyText('لازم / نیاز')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="시간 시계 시간 / 시계">
+            <span class="tag basic">#기본단어</span>
+            <div class="ko-text">시간 / 시계</div>
+            <div class="pronunciation">서앗</div>
+            <div class="fa-text">ساعت</div>
+            <button class="copy-btn" onclick="copyText('ساعت')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="하지만 그러나 하지만 / 그러나">
+            <span class="tag basic">#기본단어</span>
+            <div class="ko-text">하지만 / 그러나</div>
+            <div class="pronunciation">발리 / 암머</div>
+            <div class="fa-text">ولی / اما</div>
+            <button class="copy-btn" onclick="copyText('ولی / اما')">📋 페르시아어 복사</button>
+        </div>
+        <div class="card" data-keyword="감사 고맙 감사합니다">
+            <span class="tag basic">#기본단어</span>
+            <div class="ko-text">감사합니다</div>
+            <div class="pronunciation">맘눈 / 메르시</div>
+            <div class="fa-text">ممنون / مرسی</div>
+            <button class="copy-btn" onclick="copyText('ممنون / مرسی')">📋 페르시아어 복사</button>
+        </div>
+    </div>
     
     <div id="noResultMsg" class="no-result">
         "검색 결과가 없습니다.<br>영어로 대답하고 대장 조교를 부르세요."
     </div>
 
     <script>
-        // === 데이터 관리 영역 (여기에 단어를 추가/수정하면 됨) ===
-        const wordData = [
-            // [회피기 & 상황 종결]
-            { tagClass: "escape", tagText: "#회피기", ko: "몰라요", pron: "네미두남", fa: "نمی‌دونم", keywords: "몰라요 모릅니다" },
-            { tagClass: "escape", tagText: "#회피기", ko: "기억이 안 나요", pron: "여담 니스트", fa: "یادم نیست", keywords: "기억 안나 까먹" },
-            { tagClass: "escape", tagText: "#회피기", ko: "정확히는 모르겠습니다", pron: "다기간 네미두남", fa: "دقیقاً نمی‌دونم", keywords: "정확히 몰라요" },
-            { tagClass: "escape", tagText: "#회피기", ko: "죄송하지만, 저 페르시아어 잘 못해요.", pron: "베바크쉬드, 만 쿱 파르시 발라드 니스탐", fa: "ببخشید، من خوب فارسی بلد نیستم", keywords: "못해요 한국어 영어" },
-            { tagClass: "escape", tagText: "#회피기", ko: "여기에 적어주시겠어요?", pron: "미쉐 인저 베네비시드?", fa: "میشه اینجا بنویسید؟", keywords: "적어 글씨 스펠링" },
-            { tagClass: "escape", tagText: "#회피기", ko: "이메일로 보내주세요.", pron: "롯판 이메일 베페레스티드", fa: "لطفاً ایمیل بفرستید", keywords: "이메일 메일 보내" },
-            { tagClass: "escape", tagText: "#회피기", ko: "지금 OOO에게 전화할게요.", pron: "알언 베 OOO 장 미자남", fa: "الان به 000 زنگ می زنم", keywords: "전화 연락 부를게요 대장 조교" },
-            { tagClass: "escape", tagText: "#회피기", ko: "나중에 다시 연락드릴게요.", pron: "바단 도버레 버 쇼버 타버스 미기람", fa: "بعداً دوباره با شما تماس می‌گیرم", keywords: "나중에 다시 연락" },
-
-            // [급할때 & 기본 응대]
-            { tagClass: "urgent", tagText: "#급할때", ko: "안녕하세요", pron: "살럼", fa: "سلام", keywords: "인사 안녕" },
-            { tagClass: "urgent", tagText: "#급할때", ko: "어서 오세요 / 말씀하세요 / 여기 있습니다", pron: "베파르머이드", fa: "بفرمایید", keywords: "어서오세요 말씀하세요 여기" },
-            { tagClass: "urgent", tagText: "#급할때", ko: "알겠습니다 / 이해했습니다", pron: "파흐미담", fa: "فهمیدم", keywords: "알겠 이해" },
-            { tagClass: "urgent", tagText: "#급할때", ko: "네 / 아니요", pron: "발레 / 나", fa: "بله / نه", keywords: "네 아니요 응" },
-            { tagClass: "urgent", tagText: "#급할때", ko: "다 되었습니다 / 끝났습니다", pron: "타멈 쇼드", fa: "تمام شد", keywords: "다끝 완료" },
-            { tagClass: "urgent", tagText: "#급할때", ko: "잠시만 기다려주세요", pron: "옉 라흐제 사브르 코니드 롯판", fa: "یک لحظه صبر کنید لطفاً", keywords: "기다려 잠시만" },
-            { tagClass: "urgent", tagText: "#급할때", ko: "문제없습니다 / 괜찮습니다", pron: "모쉬켈리 니스트", fa: "مشکلی نیست", keywords: "문제 괜찮 알겠" },
-            { tagClass: "urgent", tagText: "#급할때", ko: "다시 말씀해 주세요", pron: "롯판 도버레 베기드", fa: "لطفاً دوباره بگید", keywords: "다시 한번" },
-            { tagClass: "urgent", tagText: "#급할때", ko: "이거 필요한가요?", pron: "인 러제메?", fa: "این لازمه؟", keywords: "필요 이거" },
-
-            // [실무 단어]
-            { tagClass: "office", tagText: "#실무단어", ko: "교수님", pron: "오스터드", fa: "استاد", keywords: "교수" },
-            { tagClass: "office", tagText: "#실무단어", ko: "서명(사인) / 여기에 서명해 주세요.", pron: "엠자 / 롯판 인저 엠저 코니드", fa: "امضا / لطفاً اینجا امضا کنید", keywords: "서명 사인 결재" },
-            { tagClass: "office", tagText: "#실무단어", ko: "프린트 / 복사 / 복사할까요?", pron: "찹 / 코피 / 코피 코남?", fa: "چاپ / کپی / کپی کنم؟", keywords: "프린트 복사 인쇄" },
-            { tagClass: "office", tagText: "#실무단어", ko: "행정실 / 사무실", pron: "에더레 / 다프타르", fa: "اداره / دفتر", keywords: "사무실 행정실" },
-            { tagClass: "office", tagText: "#실무단어", ko: "수업 / 강의실", pron: "켈러스", fa: "کلاس", keywords: "수업 강의실" },
-            { tagClass: "office", tagText: "#실무단어", ko: "시험", pron: "엠테헌", fa: "امتحان", keywords: "시험" },
-            { tagClass: "office", tagText: "#실무단어", ko: "종이", pron: "커가즈", fa: "کاغذ", keywords: "종이 a4" },
-            { tagClass: "office", tagText: "#실무단어", ko: "대학교", pron: "더네쉬거", fa: "دانشگاه", keywords: "대학교" },
-            { tagClass: "office", tagText: "#실무단어", ko: "책", pron: "케텁", fa: "کتاب", keywords: "책 교재" },
-
-            // [기본 단어 (명사/부사)]
-            { tagClass: "basic", tagText: "#기본단어", ko: "제발, 부디 (Please)", pron: "롯판", fa: "لطفاً", keywords: "제발 부디" },
-            { tagClass: "basic", tagText: "#기본단어", ko: "연락", pron: "타머스", fa: "تماس", keywords: "연락" },
-            { tagClass: "basic", tagText: "#기본단어", ko: "지금", pron: "알언", fa: "الان", keywords: "지금 당장" },
-            { tagClass: "basic", tagText: "#기본단어", ko: "오늘", pron: "엠루즈", fa: "امروز", keywords: "오늘" },
-            { tagClass: "basic", tagText: "#기본단어", ko: "내일", pron: "파르더", fa: "فردا", keywords: "내일" },
-            { tagClass: "basic", tagText: "#기본단어", ko: "다음 주", pron: "하프테-예 바드", fa: "هفته‌ی بعد", keywords: "다음주" },
-            { tagClass: "basic", tagText: "#기본단어", ko: "지난 주", pron: "하프테-예 피쉬", fa: "هفته‌ی پیش", keywords: "지난주" },
-            { tagClass: "basic", tagText: "#기본단어", ko: "주말", pron: "어카레 하프테", fa: "آخر هفته", keywords: "주말 토요일 일요일" },
-            { tagClass: "basic", tagText: "#기본단어", ko: "휴일 / 쉬는 날", pron: "타틸", fa: "تعطیل", keywords: "휴일 쉬는날 방학" },
-            { tagClass: "basic", tagText: "#기본단어", ko: "필요", pron: "라젬 / 니여즈", fa: "لازم / نیاز", keywords: "필요" },
-            { tagClass: "basic", tagText: "#기본단어", ko: "시간 / 시계", pron: "서앗", fa: "ساعت", keywords: "시간 시계" },
-            { tagClass: "basic", tagText: "#기본단어", ko: "하지만 / 그러나", pron: "발리 / 암머", fa: "ولی / اما", keywords: "하지만 그러나" }
-            { tagClass: "basic", tagText: "#기본단어", ko: "감사합니다", pron: "맘눈 / 메르시", fa: "ممنون / مرسی", keywords: "감사 고맙" }
-        ];
-
-        // 초기 화면 렌더링
-        function renderCards() {
-            const container = document.getElementById('cardContainer');
-            container.innerHTML = '';
-            
-            wordData.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.setAttribute('data-keyword', item.keywords + " " + item.ko);
-                
-                card.innerHTML = `
-                    <span class="tag ${item.tagClass}">${item.tagText}</span>
-                    <div class="ko-text">${item.ko}</div>
-                    <div class="pronunciation">${item.pron}</div>
-                    <div class="fa-text">${item.fa}</div>
-                    <button class="copy-btn" onclick="copyText('${item.fa}')">📋 페르시아어 복사</button>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        // 검색 필터 로직
+        // 검색 필터 로직 (하드코딩된 HTML 카드들의 display 속성만 제어)
         function filterCards() {
             let input = document.getElementById('searchInput').value.toLowerCase();
             let cards = document.getElementsByClassName('card');
@@ -174,9 +345,7 @@
                 alert("복사 실패 ㅠㅠ 다시 시도해 주세요.");
             });
         }
-
-// 브라우저가 화면을 그리기 시작할 때 무조건 강제 실행
-        window.onload = renderCards;
     </script>
+
 </body>
 </html>

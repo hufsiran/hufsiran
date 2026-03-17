@@ -175,9 +175,8 @@
             });
         }
 
-        // 스크립트 로드 시 카드 렌더링 실행
-        document.addEventListener("DOMContentLoaded", renderCards);
+// 브라우저가 화면을 그리기 시작할 때 무조건 강제 실행
+        window.onload = renderCards;
     </script>
-
 </body>
 </html>

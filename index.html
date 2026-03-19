@@ -257,15 +257,6 @@
     </header>
 
     <main>
-<div id="d-day-widget" style="width:100%; margin-bottom: 30px; display: none;"> <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px; padding: 25px; text-align: center; box-shadow: 0 10px 20px rgba(118, 75, 162, 0.3);">
-                <h2 id="d-day-title" style="margin: 0; font-size: 1.5rem; font-weight: 700;"></h2>
-                <p id="d-day-sub" style="margin: 10px 0 0; font-size: 1rem; opacity: 0.9;"></p>
-                <div id="progress-container" style="background: rgba(255,255,255,0.3); height: 10px; border-radius: 5px; margin-top: 20px; display: none;">
-                    <div id="progress-bar" style="width: 0%; height: 100%; background: #fff; border-radius: 5px; transition: width 1s ease-in-out;"></div>
-                </div>
-            </div>
-        </div>
-
         <div class="menu-grid" id="menu-grid">
             </div>
 
@@ -307,6 +298,7 @@
                         3. 작은 팝업창이 뜨면 다시 한 번 초록색 <strong>[Commit changes]</strong> 버튼을 누릅니다.<br>
                         4. 끝! 약 1~2분 뒤에 실제 사이트에 반영됩니다.
                     </div>
+                </div>
             </details>
         </section>
     </main>
@@ -374,7 +366,7 @@
                 desc: "원어민 교수님 방문 대비<br>페르시아어 사전",
                 icon: "fa-book",
                 link: "farsi.html"
-            }
+            }, // <-- 여기에 쉼표가 빠져서 전체 코드가 뻗었던 거임. 수정 완료.
             {
                 title: "카드뉴스 생성기",
                 desc: "간단 카드뉴스 템플릿",

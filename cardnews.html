@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <title>학과 카드뉴스 자동 생성기</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
     <style>
-        /* 수정됨: 영문 소문자 파일명으로 변경 */
+        /* 폰트 설정 (영문 소문자 파일명) */
         @font-face { font-family: 'HUFS-L'; src: url('hufs_l.ttf'); }
         @font-face { font-family: 'HUFS-M'; src: url('hufs_m.ttf'); }
         @font-face { font-family: 'HUFS-B'; src: url('hufs_b.ttf'); }
@@ -22,8 +24,9 @@
             justify-content: center;
         }
 
+        /* --- [좌측: 컨트롤 패널] --- */
         .control-panel {
-            width: 400px;
+            width: 420px;
             background: white;
             padding: 30px;
             border-radius: 15px;
@@ -32,117 +35,108 @@
             flex-direction: column;
             gap: 15px;
             height: fit-content;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .control-panel h2 {
-            font-family: 'HUFS-B';
-            margin-top: 0;
-            border-bottom: 2px solid #002b5c;
-            padding-bottom: 10px;
-            color: #002b5c;
+            font-family: 'HUFS-B'; margin-top: 0;
+            border-bottom: 2px solid #002b5c; padding-bottom: 10px; color: #002b5c;
         }
 
-        label { font-weight: bold; font-family: 'HUFS-B'; color: #343a40; font-size: 0.9rem; }
-        input, textarea, select {
+        /* 모드 전환 토글 스위치 */
+        .mode-toggle {
+            display: flex; background: #e9ecef; border-radius: 8px; overflow: hidden; margin-bottom: 10px;
+        }
+        .mode-toggle label {
+            flex: 1; text-align: center; padding: 12px; cursor: pointer;
+            font-family: 'HUFS-B'; color: #495057; transition: 0.3s;
+        }
+        .mode-toggle input { display: none; }
+        .mode-toggle input:checked + label { background: #002b5c; color: white; }
+
+        label.field-label { font-weight: bold; font-family: 'HUFS-B'; color: #343a40; font-size: 0.9rem; margin-bottom: 5px; display: block; }
+        input[type="text"], textarea {
             width: 100%; padding: 10px; box-sizing: border-box;
             border: 1px solid #ced4da; border-radius: 5px;
             font-family: 'HUFS-M'; font-size: 1rem;
         }
-        textarea { resize: vertical; height: 100px; }
+        textarea { resize: vertical; height: 80px; }
         
-        button {
+        .btn-download {
             background-color: #002b5c; color: white; border: none;
             padding: 15px; font-size: 1.1rem; border-radius: 8px;
-            cursor: pointer; font-family: 'HUFS-B'; transition: 0.2s;
-            margin-top: 10px;
+            cursor: pointer; font-family: 'HUFS-B'; transition: 0.2s; margin-top: 10px;
         }
-        button:hover { background-color: #001a38; }
+        .btn-download:hover { background-color: #001a38; }
 
+        /* 섹션 제어용 클래스 */
+        .cover-only { display: block; }
+        .body-only { display: none; }
+
+        /* --- [우측: 미리보기 캔버스] --- */
         .preview-wrapper {
-            width: 486px; 
-            height: 607.5px; 
-            border: 1px solid #ccc;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            overflow: hidden;
+            width: 486px; height: 607.5px; /* 1080x1350의 45% */
+            border: 1px solid #ccc; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden; background: #002b5c;
         }
 
         .card-canvas {
-            width: 1080px;
-            height: 1350px;
-            background-color: #002b5c; 
-            /* 수정됨: 은은한 페르시아 8각 별 전통 기하학 패턴 추가 (투명도 5%) */
-            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M30 0l2.5 12.5L45 15l-12.5 2.5L30 30l-2.5-12.5L15 15l12.5-2.5L30 0zm0 60l-2.5-12.5L15 45l12.5-2.5L30 30l2.5 12.5L45 45l-12.5 2.5L30 60z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-            color: white;
-            position: relative;
-            transform: scale(0.45);
-            transform-origin: top left;
-            box-sizing: border-box;
-            padding: 100px 80px;
-            display: flex;
-            flex-direction: column;
+            width: 1080px; height: 1350px; background-color: #002b5c; color: white;
+            position: relative; transform: scale(0.45); transform-origin: top left;
+            box-sizing: border-box; display: flex; flex-direction: column;
         }
 
-        .zone-header { margin-bottom: 80px; }
+        /* 페르시아풍 기하학 패턴 띠 (상/하단 고정) */
+        .persian-border {
+            width: 100%; height: 60px;
+            /* 추후 실제 이란 문양 이미지를 쓴다면 아래 주석을 풀고 파일명을 맞추세요 */
+            /* background-image: url('pattern.png'); */
+            /* 현재는 코드로 구현된 이슬라믹 기하학 패턴 (투명도 20%) */
+            background-color: #001a38;
+            background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.15' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E");
+            border-bottom: 3px solid #ffd700;
+        }
+        .persian-border.bottom { border-top: 3px solid #ffd700; border-bottom: none; position: absolute; bottom: 0; }
+
+        .content-area { padding: 80px; flex-grow: 1; display: flex; flex-direction: column; }
+
+        .zone-header { margin-bottom: 60px; transition: 0.3s; }
         .category-badge {
             display: inline-block; background-color: #0082a6; 
             padding: 10px 25px; border-radius: 50px;
             font-family: 'HUFS-B'; font-size: 28px; margin-bottom: 30px;
         }
-        .main-title {
-            font-family: 'HUFS-B'; font-size: 90px; line-height: 1.3;
-            word-break: keep-all; margin: 0;
-        }
-        .sub-title {
-            font-family: 'IRANSans', 'HUFS-L'; font-size: 40px; color: #a0c4ff;
-            margin-top: 20px;
-        }
+        .main-title { font-family: 'HUFS-B'; font-size: 90px; line-height: 1.3; word-break: keep-all; margin: 0; }
+        .sub-title { font-family: 'IRANSans', 'HUFS-L'; font-size: 40px; color: #a0c4ff; margin-top: 20px; }
 
+        /* 표지 모드: 핵심 정보 박스 */
         .zone-info {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px; padding: 50px;
-            margin-bottom: 60px; backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08); border-radius: 20px; padding: 40px;
+            backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.15); margin-bottom: 40px;
         }
-        .info-row {
-            display: flex; margin-bottom: 30px; align-items: flex-start;
-        }
+        .info-row { display: flex; margin-bottom: 25px; align-items: flex-start; }
         .info-row:last-child { margin-bottom: 0; }
-        .info-label {
-            font-family: 'HUFS-B'; font-size: 35px; width: 180px;
-            color: #ffd700; flex-shrink: 0;
-        }
-        .info-value {
-            font-family: 'HUFS-M'; font-size: 35px; line-height: 1.4;
-            flex-grow: 1; word-break: break-all;
+        .info-label { font-family: 'HUFS-B'; font-size: 35px; width: 180px; color: #ffd700; flex-shrink: 0; }
+        .info-value { font-family: 'HUFS-M'; font-size: 35px; line-height: 1.4; flex-grow: 1; word-break: break-all; }
+
+        /* 본문 모드: 넓은 텍스트 영역 */
+        .zone-body-large {
+            display: none; font-family: 'HUFS-M'; font-size: 40px; line-height: 1.7; 
+            color: #e9ecef; flex-grow: 1; word-break: keep-all; background: rgba(0,0,0,0.2);
+            padding: 40px; border-radius: 20px; border-left: 5px solid #0082a6;
         }
 
-        .zone-body {
-            font-family: 'HUFS-M'; font-size: 32px; line-height: 1.6;
-            color: #e9ecef; flex-grow: 1; word-break: keep-all;
+        /* 하단 푸터 영역 (QR 및 로고) */
+        .footer-area {
+            position: absolute; bottom: 90px; left: 80px; right: 80px;
+            display: flex; justify-content: space-between; align-items: flex-end;
         }
-
-        .logo-footer {
-            position: absolute; bottom: 80px; right: 80px;
-            display: flex; align-items: flex-end;
-        }
-        /* 수정됨: 영문 파일명으로 이미지 소스 변경 */
-        .logo-footer img { max-width: 280px; height: auto; object-fit: contain; }
         
-        /* 수정됨: 좌하단 QR 코드 존 */
-        .qr-footer {
-            position: absolute; bottom: 80px; left: 80px;
-            display: flex; flex-direction: column; align-items: center; gap: 10px;
-        }
-        .qr-image {
-            width: 150px; height: 150px; background-color: white; 
-            border-radius: 15px; padding: 10px; box-sizing: border-box;
-            display: none; /* 이미지가 없으면 숨김 */
-            object-fit: cover;
-        }
-        .qr-text {
-            font-family: 'HUFS-B'; font-size: 26px; color: #ffd700;
-            display: none; /* 이미지가 없으면 숨김 */
-        }
+        .qr-section { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .qr-box { background: white; padding: 15px; border-radius: 15px; display: inline-block; }
+        .qr-text { font-family: 'HUFS-B'; font-size: 26px; color: #ffd700; }
+        
+        .logo-section img { max-width: 250px; height: auto; object-fit: contain; }
 
     </style>
 </head>
@@ -150,130 +144,169 @@
 
     <div class="control-panel">
         <h2>🛠️ 카드뉴스 생성기</h2>
+
+        <div class="mode-toggle">
+            <input type="radio" name="cardMode" id="modeCover" value="cover" checked onchange="toggleMode()">
+            <label for="modeCover">1페이지 (표지)</label>
+            
+            <input type="radio" name="cardMode" id="modeBody" value="body" onchange="toggleMode()">
+            <label for="modeBody">2~3페이지 (본문)</label>
+        </div>
         
         <div>
-            <label>태그 (예: 동문특강, 노루즈)</label>
+            <label class="field-label">태그 (카테고리)</label>
             <input type="text" id="inCat" value="특강 안내" oninput="updateCard()">
         </div>
         
         <div>
-            <label>메인 제목 (1~2줄)</label>
+            <label class="field-label">메인 제목</label>
             <textarea id="inTitle" oninput="updateCard()">2026학년도 이란학과&#13;&#10;선배와의 대화 초청 특강</textarea>
         </div>
         
         <div>
-            <label>페르시아어 부제목 (선택)</label>
+            <label class="field-label">페르시아어 부제목</label>
             <input type="text" id="inSub" value="سخنرانی ویژه دانشجویان" oninput="updateCard()" dir="rtl">
         </div>
 
-        <div>
-            <label>일시 (When)</label>
-            <input type="text" id="inDate" value="2026. 04. 15 (수) 15:00" oninput="updateCard()">
+        <div id="coverInputs" class="cover-only">
+            <div>
+                <label class="field-label">일시 (When)</label>
+                <input type="text" id="inDate" value="2026. 04. 15 (수) 15:00" oninput="updateCard()">
+            </div>
+            <div style="margin-top:15px;">
+                <label class="field-label">장소 (Where)</label>
+                <input type="text" id="inLoc" value="본관 3층 대회의실" oninput="updateCard()">
+            </div>
+            <div style="margin-top:15px;">
+                <label class="field-label">대상 (Who)</label>
+                <input type="text" id="inWho" value="재학생 누구나" oninput="updateCard()">
+            </div>
         </div>
 
-        <div>
-            <label>장소 (Where)</label>
-            <input type="text" id="inLoc" value="본관 3층 대회의실" oninput="updateCard()">
+        <div id="bodyInputs" class="body-only">
+            <label class="field-label">상세 본문 내용 (글자 수 초과 주의)</label>
+            <textarea id="inBody" style="height: 250px;" oninput="updateCard()">이번 특강에서는 실제 스타트업 및 IT 업계에서 활약하고 있는 졸업생 선배님을 모시고 현장감 있는 실무 이야기를 나눌 예정입니다.&#13;&#10;&#13;&#10;- 강사: 홍길동 (15학번)&#13;&#10;- 주제: 이란 전공자의 IT 업계 생존기&#13;&#10;- 혜택: 참석자 전원 다과 제공</textarea>
         </div>
 
-        <div>
-            <label>대상 (Who)</label>
-            <input type="text" id="inWho" value="페르시아어·이란학과 재학생 누구나" oninput="updateCard()">
+        <div style="margin-top:15px;">
+            <label class="field-label">사전 신청 구글 폼 URL (자동 QR생성)</label>
+            <input type="text" id="inQRUrl" placeholder="https://forms.gle/..." oninput="generateQR()">
+            <small style="color:#666; font-size:0.8rem; display:block; margin-top:5px;">※ 주소를 지우면 QR코드가 사라집니다.</small>
         </div>
 
-        <div>
-            <label>신청방법 (How)</label>
-            <input type="text" id="inHow" value="좌측 하단 QR코드 스캔 (구글 폼)" oninput="updateCard()">
-        </div>
-
-        <div>
-            <label>QR코드 이미지 업로드 (선택)</label>
-            <input type="file" id="inQR" accept="image/*" onchange="loadQR(event)">
-        </div>
-
-        <div>
-            <label>상세 내용 (최대 4줄)</label>
-            <textarea id="inDesc" style="height:120px;" oninput="updateCard()">이번 특강에서는 실제 스타트업 및 IT 업계에서 활약하고 있는 졸업생 선배님을 모시고 현장감 있는 실무 이야기를 나눌 예정입니다. 많은 참여 바랍니다.</textarea>
-        </div>
-
-        <button onclick="downloadImage()">💾 고화질 이미지로 다운로드</button>
+        <button class="btn-download" onclick="downloadImage()">💾 고화질 이미지로 다운로드</button>
     </div>
 
     <div class="preview-wrapper">
         <div class="card-canvas" id="captureTarget">
+            <div class="persian-border"></div>
             
-            <div class="zone-header">
-                <div class="category-badge" id="outCat">특강 안내</div>
-                <div class="main-title" id="outTitle">2026학년도 이란학과<br>선배와의 대화 초청 특강</div>
-                <div class="sub-title" id="outSub">سخنرانی ویژه دانشجویان</div>
-            </div>
-
-            <div class="zone-info">
-                <div class="info-row">
-                    <div class="info-label">일시</div>
-                    <div class="info-value" id="outDate">2026. 04. 15 (수) 15:00</div>
+            <div class="content-area">
+                <div class="zone-header" id="outHeader">
+                    <div class="category-badge" id="outCat">특강 안내</div>
+                    <div class="main-title" id="outTitle">2026학년도 이란학과<br>선배와의 대화 초청 특강</div>
+                    <div class="sub-title" id="outSub">سخنرانی ویژه دانشجویان</div>
                 </div>
-                <div class="info-row">
-                    <div class="info-label">장소</div>
-                    <div class="info-value" id="outLoc">본관 3층 대회의실</div>
+
+                <div class="zone-info" id="outInfo">
+                    <div class="info-row">
+                        <div class="info-label">일시</div>
+                        <div class="info-value" id="outDate">2026. 04. 15 (수) 15:00</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">장소</div>
+                        <div class="info-value" id="outLoc">본관 3층 대회의실</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">대상</div>
+                        <div class="info-value" id="outWho">재학생 누구나</div>
+                    </div>
                 </div>
-                <div class="info-row">
-                    <div class="info-label">대상</div>
-                    <div class="info-value" id="outWho">페르시아어·이란학과 재학생 누구나</div>
-                </div>
-                <div class="info-row">
-                    <div class="info-label">신청</div>
-                    <div class="info-value" id="outHow">좌측 하단 QR코드 스캔 (구글 폼)</div>
+
+                <div class="zone-body-large" id="outBody">
+                    본문 내용이 여기에 표시됩니다.
                 </div>
             </div>
 
-            <div class="zone-body" id="outDesc">
-                이번 특강에서는 실제 스타트업 및 IT 업계에서 활약하고 있는 졸업생 선배님을 모시고 현장감 있는 실무 이야기를 나눌 예정입니다. 많은 참여 바랍니다.
+            <div class="footer-area">
+                <div class="qr-section" id="qrFooter" style="display: none;">
+                    <div class="qr-box" id="qrcodeLayout"></div>
+                    <div class="qr-text">신청하기👆</div>
+                </div>
+                <div class="logo-section" style="margin-left: auto;">
+                    <img src="logo.png" alt="학과 로고">
+                </div>
             </div>
 
-            <div class="qr-footer">
-                <img id="outQR" class="qr-image" src="" alt="QR">
-                <div id="outQRText" class="qr-text">신청하기👆</div>
-            </div>
-
-            <div class="logo-footer">
-                <img src="logo.png" alt="학과 로고">
-            </div>
-
+            <div class="persian-border bottom"></div>
         </div>
     </div>
 
     <script>
+        // QR코드 객체 초기화
+        let qrcode = new QRCode(document.getElementById("qrcodeLayout"), {
+            width: 140,
+            height: 140,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+
+        // URL 입력 시 QR 자동 생성 로직
+        function generateQR() {
+            const url = document.getElementById('inQRUrl').value;
+            const qrFooter = document.getElementById('qrFooter');
+            
+            if(url.trim() !== "") {
+                qrcode.makeCode(url);
+                qrFooter.style.display = "flex";
+            } else {
+                qrFooter.style.display = "none";
+            }
+        }
+
+        // 텍스트 실시간 동기화
         function updateCard() {
             document.getElementById('outCat').innerText = document.getElementById('inCat').value;
             document.getElementById('outTitle').innerHTML = document.getElementById('inTitle').value.replace(/\n/g, '<br>');
             document.getElementById('outSub').innerText = document.getElementById('inSub').value;
+            
             document.getElementById('outDate').innerText = document.getElementById('inDate').value;
             document.getElementById('outLoc').innerText = document.getElementById('inLoc').value;
             document.getElementById('outWho').innerText = document.getElementById('inWho').value;
-            document.getElementById('outHow').innerText = document.getElementById('inHow').value;
-            document.getElementById('outDesc').innerHTML = document.getElementById('inDesc').value.replace(/\n/g, '<br>');
+            
+            document.getElementById('outBody').innerHTML = document.getElementById('inBody').value.replace(/\n/g, '<br>');
         }
 
-        // 수정됨: QR코드 로컬 업로드 처리 로직 (이걸 안 짜면 네가 매번 html 파일을 뜯어야 함)
-        function loadQR(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const qrImg = document.getElementById('outQR');
-                    const qrText = document.getElementById('outQRText');
-                    qrImg.src = e.target.result;
-                    qrImg.style.display = 'block';
-                    qrText.style.display = 'block';
-                }
-                reader.readAsDataURL(file);
+        // 표지 / 본문 모드 전환 (UI 토글)
+        function toggleMode() {
+            const mode = document.querySelector('input[name="cardMode"]:checked').value;
+            
+            if (mode === 'cover') {
+                // 표지 모드: 정보 박스 On, 본문 박스 Off
+                document.getElementById('coverInputs').style.display = 'block';
+                document.getElementById('bodyInputs').style.display = 'none';
+                
+                document.getElementById('outInfo').style.display = 'block';
+                document.getElementById('outBody').style.display = 'none';
             } else {
-                document.getElementById('outQR').style.display = 'none';
-                document.getElementById('outQRText').style.display = 'none';
+                // 본문 모드: 정보 박스 Off, 본문 박스 On
+                document.getElementById('coverInputs').style.display = 'none';
+                document.getElementById('bodyInputs').style.display = 'block';
+                
+                document.getElementById('outInfo').style.display = 'none';
+                document.getElementById('outBody').style.display = 'block';
             }
+            updateCard();
         }
 
+        // 초기 실행 세팅
+        window.onload = function() {
+            updateCard();
+            generateQR(); // 초기값이 비어있으므로 QR 숨김 처리됨
+        }
+
+        // 다운로드 로직 (CORS 완벽 대응)
         function downloadImage() {
             const target = document.getElementById('captureTarget');
             target.style.transform = 'scale(1)';
@@ -284,13 +317,15 @@
                 backgroundColor: '#002b5c'
             }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = `학과공지_${Date.now()}.png`;
+                // 현재 모드에 따라 파일명 다르게 저장
+                const modeName = document.querySelector('input[name="cardMode"]:checked').value === 'cover' ? '표지' : '본문';
+                link.download = `카드뉴스_${modeName}_${Date.now()}.png`;
                 link.href = canvas.toDataURL("image/png");
                 link.click();
                 
                 target.style.transform = 'scale(0.45)';
             }).catch(err => {
-                alert("이미지 저장 중 오류가 발생했습니다. 로고 파일 이름과 폰트를 확인해주세요.");
+                alert("이미지 저장 오류! 깃허브에 파일이 제대로 올라갔는지 확인하세요.");
                 target.style.transform = 'scale(0.45)';
             });
         }

@@ -266,113 +266,6 @@
             </div>
         </div>
 
-<script>
-    // ==============================================================
-    // [설정] 2026-1학기 학사일정
-    // ==============================================================
-    const events = [
-        { name: "설날연휴", date: "2026-02-14", until: "2026-02-18", type: "holiday" },
-        { name: "3.1절 대체휴일", date: "2026-03-02", type: "holiday" },
-        { name: "2026-1학기 개강", date: "2026-03-03", type: "start" }, // ★ 여기가 진짜 시작
-        { name: "근로자의날", date: "2026-05-01", type: "holiday" },
-        { name: "어린이날", date: "2026-05-05", type: "holiday" },
-        { name: "부처님오신날 대체휴일", date: "2026-05-25", type: "holiday" },
-        { name: "지방선거 휴일", date: "2026-06-03", type: "holiday" },
-        { name: "종강", date: "2026-06-22", type: "end" }
-    ];
-
-    (function updateDday() {
-        const today = new Date();
-        today.setHours(0,0,0,0); // 시간 무시, 날짜만 비교
-
-        // 요소 가져오기
-        const widget = document.getElementById('d-day-widget');
-        const titleEl = document.getElementById('d-day-title');
-        const subEl = document.getElementById('d-day-sub');
-        const barContainer = document.getElementById('progress-container');
-        const bar = document.getElementById('progress-bar');
-
-        // 1. [우선순위] 오늘이 특정 일정(연휴 등) 당일인가?
-        const currentEvent = events.find(e => {
-            const start = new Date(e.date);
-            const end = e.until ? new Date(e.until) : new Date(e.date); 
-            return today >= start && today <= end;
-        });
-
-        if (currentEvent) {
-            widget.style.display = 'block';
-            
-            // 당일 멘트 처리
-            if(currentEvent.type === 'start') {
-                titleEl.innerHTML = `🎓 오늘은 <span style="color:#ffdf7e">개강일</span>입니다!`;
-                subEl.innerText = "새로운 학기, 힘차게 시작해봐요! 화이팅!";
-            } else if (currentEvent.type === 'end') {
-                titleEl.innerHTML = `🏖️ 드디어 <span style="color:#ffdf7e">종강</span>입니다!`;
-                subEl.innerText = "한 학기 동안 정말 고생 많으셨습니다!";
-            } else {
-                titleEl.innerHTML = `🎉 오늘은 <span style="color:#ffdf7e">${currentEvent.name}</span>!`;
-                subEl.innerText = "업무는 잠시 내려놓고 푹 쉬세요! (부재중 설정 필수)";
-            }
-            barContainer.style.display = 'none';
-            return; // 당일이면 여기서 끝
-        }
-
-        // 2. 미래의 일정 찾기
-        const upcoming = events.find(e => new Date(e.date) > today);
-        if (!upcoming) { widget.style.display = 'none'; return; } // 남은 일정 없으면 숨김
-
-        widget.style.display = 'block';
-        const targetDate = new Date(upcoming.date);
-        const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
-
-        // 3. 학기 진행률 계산을 위한 기준점 찾기 (자동 감지)
-        const semesterStartObj = events.find(e => e.type === 'start');
-        const semesterStart = semesterStartObj ? new Date(semesterStartObj.date) : new Date("2026-03-03");
-
-        // [상황 A] 개강 전이다 (오늘 < 개강일) -> 무조건 방학 모드
-        if (today < semesterStart) {
-            // 다가오는 게 개강이면
-            if (upcoming.type === 'start') {
-                titleEl.innerHTML = `🎓 개강까지 <span style="color:#ffdf7e">D-${diffDays}</span>`;
-                subEl.innerText = "폭풍전야... 마음의 준비 하세요.";
-            } 
-            // 다가오는 게 휴일이면 (예: 3.1절)
-            else {
-                titleEl.innerHTML = `🎈 곧 <span style="color:#ffdf7e">${upcoming.name}</span> 입니다! (D-${diffDays})`;
-                subEl.innerText = "개강 전 마지막 휴식일지도 모릅니다...";
-            }
-            barContainer.style.display = 'none'; // 게이지 숨김
-        } 
-        
-        // [상황 B] 학기 중이다 (오늘 >= 개강일) -> 종강 게이지 모드
-        else {
-            // 종강일 찾기 (자동 감지)
-            const semesterEndObj = events.find(e => e.type === 'end');
-            
-            if (semesterEndObj) {
-                const semesterEnd = new Date(semesterEndObj.date);
-                const totalDays = (semesterEnd - semesterStart) / (1000 * 60 * 60 * 24);
-                const passed = (today - semesterStart) / (1000 * 60 * 60 * 24);
-                
-                let percent = Math.round((passed / totalDays) * 100);
-                if(percent < 0) percent = 0; 
-                if(percent > 100) percent = 100;
-
-                // 다음 일정이 휴일이면 휴일 D-day를 우선 보여주되, 게이지는 유지
-                if (upcoming.type === 'holiday' && diffDays <= 7) {
-                    titleEl.innerHTML = `🎁 곧 <span style="color:#ffdf7e">${upcoming.name}</span>! (D-${diffDays})`;
-                    subEl.innerText = `현재 학기 진행률: ${percent}% (조금만 더 버팁시다)`;
-                } else {
-                    titleEl.innerHTML = `🏖️ 종강까지 버티기 <span style="color:#ffdf7e">${percent}%</span> 완료`;
-                    subEl.innerText = `종강 D-${Math.ceil((semesterEnd - today) / (1000 * 60 * 60 * 24))}일 (오늘도 화이팅!)`;
-                }
-
-                barContainer.style.display = 'block';
-                setTimeout(() => bar.style.width = percent + "%", 100);
-            }
-        }
-    })();
-</script>
         <div class="menu-grid" id="menu-grid">
             </div>
 
@@ -481,6 +374,12 @@
                 desc: "원어민 교수님 방문 대비<br>페르시아어 사전",
                 icon: "fa-book",
                 link: "farsi.html"
+            }
+            {
+                title: "카드뉴스 생성기",
+                desc: "간단 카드뉴스 템플릿",
+                icon: "fa-book",
+                link: "cardnews.html"
             }
         ];
 

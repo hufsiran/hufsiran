@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>학과 카드뉴스 자동 생성기</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        /* 수정됨: 영문 소문자 파일명으로 변경 */
+        @font-face { font-family: 'HUFS-L'; src: url('hufs_l.ttf'); }
+        @font-face { font-family: 'HUFS-M'; src: url('hufs_m.ttf'); }
+        @font-face { font-family: 'HUFS-B'; src: url('hufs_b.ttf'); }
+        @font-face { font-family: 'IRANSans'; src: url('iransans_medium.ttf'); }
+        @font-face { font-family: 'IRANNastaliq'; src: url('iran_nastaliq.ttf'); }
+
+        body {
+            font-family: 'HUFS-M', sans-serif;
+            background-color: #f1f3f5;
+            display: flex;
+            margin: 0;
+            padding: 20px;
+            gap: 30px;
+            justify-content: center;
+        }
+
+        .control-panel {
+            width: 400px;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            height: fit-content;
+        }
+
+        .control-panel h2 {
+            font-family: 'HUFS-B';
+            margin-top: 0;
+            border-bottom: 2px solid #002b5c;
+            padding-bottom: 10px;
+            color: #002b5c;
+        }
+
+        label { font-weight: bold; font-family: 'HUFS-B'; color: #343a40; font-size: 0.9rem; }
+        input, textarea, select {
+            width: 100%; padding: 10px; box-sizing: border-box;
+            border: 1px solid #ced4da; border-radius: 5px;
+            font-family: 'HUFS-M'; font-size: 1rem;
+        }
+        textarea { resize: vertical; height: 100px; }
+        
+        button {
+            background-color: #002b5c; color: white; border: none;
+            padding: 15px; font-size: 1.1rem; border-radius: 8px;
+            cursor: pointer; font-family: 'HUFS-B'; transition: 0.2s;
+            margin-top: 10px;
+        }
+        button:hover { background-color: #001a38; }
+
+        .preview-wrapper {
+            width: 486px; 
+            height: 607.5px; 
+            border: 1px solid #ccc;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+
+        .card-canvas {
+            width: 1080px;
+            height: 1350px;
+            background-color: #002b5c; 
+            /* 수정됨: 은은한 페르시아 8각 별 전통 기하학 패턴 추가 (투명도 5%) */
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M30 0l2.5 12.5L45 15l-12.5 2.5L30 30l-2.5-12.5L15 15l12.5-2.5L30 0zm0 60l-2.5-12.5L15 45l12.5-2.5L30 30l2.5 12.5L45 45l-12.5 2.5L30 60z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            color: white;
+            position: relative;
+            transform: scale(0.45);
+            transform-origin: top left;
+            box-sizing: border-box;
+            padding: 100px 80px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .zone-header { margin-bottom: 80px; }
+        .category-badge {
+            display: inline-block; background-color: #0082a6; 
+            padding: 10px 25px; border-radius: 50px;
+            font-family: 'HUFS-B'; font-size: 28px; margin-bottom: 30px;
+        }
+        .main-title {
+            font-family: 'HUFS-B'; font-size: 90px; line-height: 1.3;
+            word-break: keep-all; margin: 0;
+        }
+        .sub-title {
+            font-family: 'IRANSans', 'HUFS-L'; font-size: 40px; color: #a0c4ff;
+            margin-top: 20px;
+        }
+
+        .zone-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px; padding: 50px;
+            margin-bottom: 60px; backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .info-row {
+            display: flex; margin-bottom: 30px; align-items: flex-start;
+        }
+        .info-row:last-child { margin-bottom: 0; }
+        .info-label {
+            font-family: 'HUFS-B'; font-size: 35px; width: 180px;
+            color: #ffd700; flex-shrink: 0;
+        }
+        .info-value {
+            font-family: 'HUFS-M'; font-size: 35px; line-height: 1.4;
+            flex-grow: 1; word-break: break-all;
+        }
+
+        .zone-body {
+            font-family: 'HUFS-M'; font-size: 32px; line-height: 1.6;
+            color: #e9ecef; flex-grow: 1; word-break: keep-all;
+        }
+
+        .logo-footer {
+            position: absolute; bottom: 80px; right: 80px;
+            display: flex; align-items: flex-end;
+        }
+        /* 수정됨: 영문 파일명으로 이미지 소스 변경 */
+        .logo-footer img { max-width: 280px; height: auto; object-fit: contain; }
+        
+        /* 수정됨: 좌하단 QR 코드 존 */
+        .qr-footer {
+            position: absolute; bottom: 80px; left: 80px;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+        }
+        .qr-image {
+            width: 150px; height: 150px; background-color: white; 
+            border-radius: 15px; padding: 10px; box-sizing: border-box;
+            display: none; /* 이미지가 없으면 숨김 */
+            object-fit: cover;
+        }
+        .qr-text {
+            font-family: 'HUFS-B'; font-size: 26px; color: #ffd700;
+            display: none; /* 이미지가 없으면 숨김 */
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="control-panel">
+        <h2>🛠️ 카드뉴스 생성기</h2>
+        
+        <div>
+            <label>태그 (예: 동문특강, 노루즈)</label>
+            <input type="text" id="inCat" value="특강 안내" oninput="updateCard()">
+        </div>
+        
+        <div>
+            <label>메인 제목 (1~2줄)</label>
+            <textarea id="inTitle" oninput="updateCard()">2026학년도 이란학과&#13;&#10;선배와의 대화 초청 특강</textarea>
+        </div>
+        
+        <div>
+            <label>페르시아어 부제목 (선택)</label>
+            <input type="text" id="inSub" value="سخنرانی ویژه دانشجویان" oninput="updateCard()" dir="rtl">
+        </div>
+
+        <div>
+            <label>일시 (When)</label>
+            <input type="text" id="inDate" value="2026. 04. 15 (수) 15:00" oninput="updateCard()">
+        </div>
+
+        <div>
+            <label>장소 (Where)</label>
+            <input type="text" id="inLoc" value="본관 3층 대회의실" oninput="updateCard()">
+        </div>
+
+        <div>
+            <label>대상 (Who)</label>
+            <input type="text" id="inWho" value="페르시아어·이란학과 재학생 누구나" oninput="updateCard()">
+        </div>
+
+        <div>
+            <label>신청방법 (How)</label>
+            <input type="text" id="inHow" value="좌측 하단 QR코드 스캔 (구글 폼)" oninput="updateCard()">
+        </div>
+
+        <div>
+            <label>QR코드 이미지 업로드 (선택)</label>
+            <input type="file" id="inQR" accept="image/*" onchange="loadQR(event)">
+        </div>
+
+        <div>
+            <label>상세 내용 (최대 4줄)</label>
+            <textarea id="inDesc" style="height:120px;" oninput="updateCard()">이번 특강에서는 실제 스타트업 및 IT 업계에서 활약하고 있는 졸업생 선배님을 모시고 현장감 있는 실무 이야기를 나눌 예정입니다. 많은 참여 바랍니다.</textarea>
+        </div>
+
+        <button onclick="downloadImage()">💾 고화질 이미지로 다운로드</button>
+    </div>
+
+    <div class="preview-wrapper">
+        <div class="card-canvas" id="captureTarget">
+            
+            <div class="zone-header">
+                <div class="category-badge" id="outCat">특강 안내</div>
+                <div class="main-title" id="outTitle">2026학년도 이란학과<br>선배와의 대화 초청 특강</div>
+                <div class="sub-title" id="outSub">سخنرانی ویژه دانشجویان</div>
+            </div>
+
+            <div class="zone-info">
+                <div class="info-row">
+                    <div class="info-label">일시</div>
+                    <div class="info-value" id="outDate">2026. 04. 15 (수) 15:00</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">장소</div>
+                    <div class="info-value" id="outLoc">본관 3층 대회의실</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">대상</div>
+                    <div class="info-value" id="outWho">페르시아어·이란학과 재학생 누구나</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">신청</div>
+                    <div class="info-value" id="outHow">좌측 하단 QR코드 스캔 (구글 폼)</div>
+                </div>
+            </div>
+
+            <div class="zone-body" id="outDesc">
+                이번 특강에서는 실제 스타트업 및 IT 업계에서 활약하고 있는 졸업생 선배님을 모시고 현장감 있는 실무 이야기를 나눌 예정입니다. 많은 참여 바랍니다.
+            </div>
+
+            <div class="qr-footer">
+                <img id="outQR" class="qr-image" src="" alt="QR">
+                <div id="outQRText" class="qr-text">신청하기👆</div>
+            </div>
+
+            <div class="logo-footer">
+                <img src="logo.png" alt="학과 로고">
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function updateCard() {
+            document.getElementById('outCat').innerText = document.getElementById('inCat').value;
+            document.getElementById('outTitle').innerHTML = document.getElementById('inTitle').value.replace(/\n/g, '<br>');
+            document.getElementById('outSub').innerText = document.getElementById('inSub').value;
+            document.getElementById('outDate').innerText = document.getElementById('inDate').value;
+            document.getElementById('outLoc').innerText = document.getElementById('inLoc').value;
+            document.getElementById('outWho').innerText = document.getElementById('inWho').value;
+            document.getElementById('outHow').innerText = document.getElementById('inHow').value;
+            document.getElementById('outDesc').innerHTML = document.getElementById('inDesc').value.replace(/\n/g, '<br>');
+        }
+
+        // 수정됨: QR코드 로컬 업로드 처리 로직 (이걸 안 짜면 네가 매번 html 파일을 뜯어야 함)
+        function loadQR(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const qrImg = document.getElementById('outQR');
+                    const qrText = document.getElementById('outQRText');
+                    qrImg.src = e.target.result;
+                    qrImg.style.display = 'block';
+                    qrText.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                document.getElementById('outQR').style.display = 'none';
+                document.getElementById('outQRText').style.display = 'none';
+            }
+        }
+
+        function downloadImage() {
+            const target = document.getElementById('captureTarget');
+            target.style.transform = 'scale(1)';
+            
+            html2canvas(target, {
+                scale: 1, 
+                useCORS: true,
+                backgroundColor: '#002b5c'
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `학과공지_${Date.now()}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                
+                target.style.transform = 'scale(0.45)';
+            }).catch(err => {
+                alert("이미지 저장 중 오류가 발생했습니다. 로고 파일 이름과 폰트를 확인해주세요.");
+                target.style.transform = 'scale(0.45)';
+            });
+        }
+    </script>
+</body>
+</html>

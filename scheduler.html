@@ -362,21 +362,14 @@
     let semesterResult = {};
     let vacationResult = {};
     let globalHolidays = new Set();
+    window.semesterExceptions = new Set(); // 제약 조건 위반 예외 마킹용
 
     const times = [9, 10, 11, 12, 13, 14, 15, 16]; 
     const days = ["월", "화", "수", "목", "금"];
     
     const pastelColors = [
-        "#FFADAD", // Red
-        "#FFD6A5", // Orange
-        "#FDFFB6", // Yellow
-        "#CAFFBF", // Green
-        "#9BF6FF", // Cyan
-        "#A0C4FF", // Blue
-        "#BDB2FF", // Purple
-        "#FFC6FF", // Pink
-        "#84D8E2", // Teal
-        "#F4A261"  // Deep Orange
+        "#FFADAD", "#FFD6A5", "#FDFFB6", "#CAFFBF", "#9BF6FF", 
+        "#A0C4FF", "#BDB2FF", "#FFC6FF", "#84D8E2", "#F4A261"
     ];
 
     window.onload = function() {
@@ -388,11 +381,6 @@
                 document.getElementById(e.target.dataset.target).innerText = e.target.value;
             });
         });
-
-        // 예시
-        addSemAssistant('박석사', 'grad', 100, 20);
-        addSemAssistant('김학부', 'under', 50, 10);
-        selectTa(0);
     };
 
     function syncSemPeriod() {
@@ -440,6 +428,7 @@
         return totalHours;
     }
 
+    // [수정] 수동 배정 시 예외 검사(checkSemesterExceptions) 다시 실행
     function overrideSemesterSlot(id, newName) {
         const oldName = semesterResult[id];
         if (newName) {
@@ -463,6 +452,7 @@
             }
             semesterResult[id] = "배정불가";
         }
+        checkSemesterExceptions(); // 변경 후 예외 재계산
         renderTaList('semester');
         renderSemesterCells();
     }
@@ -488,7 +478,7 @@
             
             const msg = document.getElementById('msgSemester');
             if (sub === 'input') msg.innerText = "조교 선택 후 시간표를 클릭하여 '불가(X)' 체크";
-            else msg.innerText = "배정 결과 확인 후 근무표 이미지로 저장";
+            else msg.innerText = "배정 결과 확인 후 근무표 이미지로 저장 (빨간색 테두리는 제약조건 예외 배정입니다)";
             
             renderSemesterCells();
         } else {
@@ -506,7 +496,6 @@
         }
     }
 
-    // === 조교 관리 ===
     function addSemAssistant(n, t, th, ph) {
         const name = n || document.getElementById('newNameSem').value;
         const type = t || document.getElementById('newTypeSem').value;
@@ -549,7 +538,6 @@
         renderTaList('vacation'); renderFooterNames('vacation'); selectTa(vacAssistants.length-1);
     }
 
-    // [수정됨] 직관적인 텍스트 및 게이지 바 반영 로직
     function renderTaList(mode) {
         const list = document.getElementById(mode === 'semester' ? 'taListSemester' : 'taListVacation');
         const arr = mode === 'semester' ? semAssistants : vacAssistants;
@@ -570,7 +558,6 @@
 
             if (mode === 'semester') {
                 const expTotal = calculateExpectedTotalHours(ta);
-                // 게이지 바(pctCurr)를 '주당 배정 시간'이 아니라 '새로 계산된 총 예상 근무시간' 기준으로 채움
                 pctCurr = (expTotal / ta.targetHours) * 100;
                 taInfoHtml = `
                     목표: ${ta.targetHours}h (주당 ${ta.assigned}h)<br>
@@ -583,8 +570,6 @@
                     누적(${ta.prevHours}) + 신규(<strong>${ta.assigned}</strong>) = <strong>${ta.prevHours + ta.assigned}h</strong>
                 `;
             }
-
-            if (pctPrev + pctCurr > 100) {} 
 
             li.innerHTML = `
                 <div style="width:100%">
@@ -632,7 +617,6 @@
         document.getElementById(boxId).innerText = sorted || "(조교 등록 필요)";
     }
 
-    // === 학기 중 로직 ===
     function initSemesterTable() {
         const tbody = document.getElementById('semesterBody');
         tbody.innerHTML = "";
@@ -679,6 +663,7 @@
         document.querySelectorAll('#semesterBody td:not(.cell-lunch)').forEach(td => {
             const id = td.dataset.id;
             td.className = ''; td.innerText = ''; td.style.background = '';
+            td.style.border = '1px solid #dee2e6';
 
             if (subModeSem === 'input' && selectedTaIndex !== -1) {
                 if (semAssistants[selectedTaIndex].impossible.has(id)) {
@@ -690,92 +675,123 @@
                 if (name) {
                     td.classList.add('cell-assigned');
                     
-                    let options = `<option value="">--배정 해제--</option>`;
-                    semAssistants.forEach(a => {
-                        options += `<option value="${a.name}" ${a.name === name ? 'selected' : ''}>${a.name}</option>`;
-                    });
+                    let isException = window.semesterExceptions && window.semesterExceptions.has(id);
+                    let availableOps = [];
+                    let impossibleOps = [];
                     
+                    semAssistants.forEach(a => {
+                        let isSelected = (a.name === name) ? 'selected' : '';
+                        let op = `<option value="${a.name}" ${isSelected}>${a.name}</option>`;
+                        if (a.impossible.has(id)) impossibleOps.push(op);
+                        else availableOps.push(op);
+                    });
+
+                    let optionsHtml = `<option value="">--배정 해제--</option>`;
+                    if (name === "배정불가") optionsHtml += `<option value="" selected>배정불가</option>`;
+                    
+                    if(availableOps.length > 0) optionsHtml += `<optgroup label="[배정 가능]">${availableOps.join('')}</optgroup>`;
+                    if(impossibleOps.length > 0) optionsHtml += `<optgroup label="--- [불가 조교] ---">${impossibleOps.join('')}</optgroup>`;
+
+                    let exceptionStyle = isException && name !== "배정불가" ? 'color: #e03131; text-decoration: underline;' : '';
+
                     td.innerHTML = `
                         <div style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
                             <select onchange="overrideSemesterSlot('${id}', this.value)" onclick="event.stopPropagation()" 
                                     style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;">
-                                ${name === "배정불가" ? `<option value="" selected>배정불가</option>` : ''}
-                                ${options}
+                                ${optionsHtml}
                             </select>
-                            <span style="pointer-events:none;">${name}</span>
+                            <span style="pointer-events:none; ${exceptionStyle}">${name}</span>
                         </div>
                     `;
                     td.style.backgroundColor = name === "배정불가" ? "#ffc9c9" : getNameColor(name);
+                    
+                    if (isException && name !== "배정불가") {
+                        td.style.border = "3px solid #e03131"; 
+                        td.style.boxSizing = "border-box";
+                    }
                 }
             }
         });
     }
 
-function generateSemester() {
+    function checkSemesterExceptions() {
+        if(!window.semesterExceptions) window.semesterExceptions = new Set();
+        window.semesterExceptions.clear();
+        
+        // 12시(점심)를 제외한 연속된 시간 인덱스 시퀀스 (연결성 판별용)
+        const seq = [9, 10, 11, 13, 14, 15, 16];
+        
+        days.forEach((d, dIdx) => {
+            let taDaily = {};
+            let taSlots = {}; 
+
+            seq.forEach((t, i) => {
+                let name = semesterResult[`${dIdx}-${t}`];
+                if(name && name !== "배정불가") {
+                    taDaily[name] = (taDaily[name] || 0) + 1;
+                    if(!taSlots[name]) taSlots[name] = [];
+                    taSlots[name].push(i);
+                }
+            });
+
+            seq.forEach((t, i) => {
+                let s = `${dIdx}-${t}`;
+                let name = semesterResult[s];
+                if(name && name !== "배정불가") {
+                    let isIsolated = true;
+                    // 앞뒤(12시 무시)로 연속된 스케줄이 하나라도 있는지 확인 (최소 2시간 룰)
+                    if (taSlots[name].includes(i - 1)) isIsolated = false;
+                    if (taSlots[name].includes(i + 1)) isIsolated = false;
+
+                    // 고립된 1시간이거나, 일일 4시간을 초과한 경우 예외(Exception)로 마킹
+                    if (isIsolated || taDaily[name] > 4) {
+                        window.semesterExceptions.add(s);
+                    }
+                }
+            });
+        });
+    }
+
+    function generateSemester() {
         if (semAssistants.length === 0) return alert("조교 없음");
         semAssistants.forEach(a => a.assigned = 0);
         semesterResult = {};
+        if(!window.semesterExceptions) window.semesterExceptions = new Set();
+        window.semesterExceptions.clear();
 
-        // 1일 최대 4시간 캡 및 요일 쿨타임 페널티를 위한 일일 근무 시간 트래커
-        let dailyHours = {};
-        semAssistants.forEach(a => {
-            dailyHours[a.name] = { 0:0, 1:0, 2:0, 3:0, 4:0 };
-        });
+        const seq = [9, 10, 11, 13, 14, 15, 16]; 
 
         let allSlots = [];
-        days.forEach((d, dIdx) => times.forEach(t => { 
-            if(t!==12) {
-                allSlots.push(`${dIdx}-${t}`);
-                semesterResult[`${dIdx}-${t}`] = null; 
-            }
+        days.forEach((d, dIdx) => seq.forEach(t => { 
+            allSlots.push(`${dIdx}-${t}`);
+            semesterResult[`${dIdx}-${t}`] = null; 
         }));
 
-        // 후보자 찾기 및 정렬 로직 (하이브리드 조건 적용)
-        function getCandidates(slotArray, dayIdx) {
-            let blockSize = slotArray.length;
+        function getCandidates(slotArray, dayIdx, requiredLength) {
             let cands = semAssistants.filter(ta => {
-                let canWork = slotArray.every(s => !ta.impossible.has(s) && semesterResult[s] === null);
-                // 하드 캡(절대 규칙): 1일 4시간 초과 금지
-                let notExceedCap = (dailyHours[ta.name][dayIdx] + blockSize) <= 4;
-                return canWork && notExceedCap;
+                const available = slotArray.every(s => !ta.impossible.has(s) && semesterResult[s] === null);
+                if (!available) return false;
+                
+                const dailyCount = seq.filter(t => semesterResult[`${dayIdx}-${t}`] === ta.name).length;
+                if (dailyCount + requiredLength > 4) return false; 
+                
+                return true;
             });
-
-            // 전체 조교 중 최대 진도율 계산 (격차 확인용)
-            let maxRatio = -Infinity;
-            semAssistants.forEach(a => {
-                let r = (a.prevHours + a.assigned) / a.targetHours;
-                if(r > maxRatio) maxRatio = r;
-            });
-
             cands.sort((a, b) => {
                 const ratioA = (a.prevHours + a.assigned) / a.targetHours;
                 const ratioB = (b.prevHours + b.assigned) / b.targetHours;
-
-                // [하이브리드 핵심 룰] 1등과 15%(0.15) 이상 격차가 벌어진 조교는 워라밸(요일 분산) 룰 무시하고 최우선 배정
-                let isABehind = (maxRatio - ratioA >= 0.15);
-                let isBBehind = (maxRatio - ratioB >= 0.15);
-
-                if (isABehind && !isBBehind) return -1;
-                if (!isABehind && isBBehind) return 1;
-
-                // 둘 다 뒤처짐 대상이거나 둘 다 아니면, 기존 워라밸(요일 쿨타임) 적용
-                let workedA = dailyHours[a.name][dayIdx] > 0 ? 1 : 0;
-                let workedB = dailyHours[b.name][dayIdx] > 0 ? 1 : 0;
-                if (workedA !== workedB) return workedA - workedB;
-
                 return ratioA - ratioB;
             });
             return cands;
         }
 
         function assignBlock(block, dayIdx) {
-            let cands = getCandidates(block, dayIdx);
+            let cands = getCandidates(block, dayIdx, block.length);
             if (cands.length > 0) {
                 let cand = cands[0];
                 block.forEach(s => {
                     semesterResult[s] = cand.name;
                     cand.assigned++;
-                    dailyHours[cand.name][dayIdx]++;
                 });
                 return true;
             }
@@ -785,9 +801,9 @@ function generateSemester() {
         let dayIndices = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5);
 
         dayIndices.forEach(d => {
-            let b4 = [[13,14,15,16]];
-            let b3 = [[9,10,11], [13,14,15], [14,15,16]].sort(() => Math.random() - 0.5);
-            let b2 = [[9,10], [10,11], [13,14], [14,15], [15,16]].sort(() => Math.random() - 0.5);
+            let b4 = [[9,10,11,13], [10,11,13,14], [11,13,14,15], [13,14,15,16]].sort(() => Math.random() - 0.5);
+            let b3 = [[9,10,11], [10,11,13], [11,13,14], [13,14,15], [14,15,16]].sort(() => Math.random() - 0.5);
+            let b2 = [[9,10], [10,11], [11,13], [13,14], [14,15], [15,16]].sort(() => Math.random() - 0.5);
             
             [b4, b3, b2].forEach(group => {
                 group.forEach(timesArr => {
@@ -797,36 +813,27 @@ function generateSemester() {
                     }
                 });
             });
-
-            let crossBlocks = [[10,11,13], [11,13,14], [9,10,11,13], [11,13,14,15]].sort(() => Math.random() - 0.5);
-            crossBlocks.forEach(timesArr => {
-                let block = timesArr.map(t => `${d}-${t}`);
-                if (block.every(s => semesterResult[s] === null)) {
-                    assignBlock(block, d);
-                }
-            });
         });
 
-        // 마지막 찌끄레기 시간들 (1시간 단위 땜빵)
         let remainingSlots = allSlots.filter(s => semesterResult[s] === null).sort(() => Math.random() - 0.5);
         remainingSlots.forEach(s => {
-            let dayIdx = parseInt(s.split('-')[0]);
-            let cands = getCandidates([s], dayIdx);
+            let cands = semAssistants.filter(ta => !ta.impossible.has(s));
             if (cands.length > 0) {
+                cands.sort((a,b) => ((a.prevHours + a.assigned)/a.targetHours) - ((b.prevHours + b.assigned)/b.targetHours));
                 semesterResult[s] = cands[0].name;
                 cands[0].assigned++;
-                dailyHours[cands[0].name][dayIdx]++;
             } else {
                 semesterResult[s] = "배정불가";
             }
         });
 
+        checkSemesterExceptions();
+
         renderTaList('semester');
         setSubMode('semester', 'view');
-        alert("학기 근무표 배정 완료!");
+        alert("학기 근무표 배정 완료!\n(※ 붉은색 테두리: 1시간 단독 근무 또는 일 4시간 초과 예외 배정)");
     }
 
-    // === 방학 중 로직 ===
     function renderCalendar() {
         const year = parseInt(document.getElementById('vacYear').value);
         const month = parseInt(document.getElementById('vacMonth').value);
@@ -973,16 +980,39 @@ function generateSemester() {
         }
     }
 
+    // === [수정됨] 다운로드 시 예외 테두리 자동 세탁 로직 ===
     function downloadImage(mode) {
         const targetId = mode === 'semester' ? 'semesterA4' : 'vacationA4';
         const dateStr = mode === 'semester' ? document.getElementById('semTitleDate').value : document.getElementById('dispVacTitle').innerText;
         const safeDate = dateStr.replace(/\s/g, "_");
+        
+        // 캡처 직전: 빨간색 경고 서식 숨김 처리
+        if (mode === 'semester') {
+            document.querySelectorAll('#semesterBody td').forEach(td => {
+                td.style.border = '1px solid #dee2e6'; // 기본 테두리로 복구
+                const span = td.querySelector('span');
+                if (span) {
+                    span.style.color = '';
+                    span.style.textDecoration = '';
+                }
+            });
+        }
         
         html2canvas(document.getElementById(targetId), { scale: 2 }).then(canvas => {
             const link = document.createElement('a');
             link.download = `페르시아어이란학과_${safeDate}_조교근무표.png`;
             link.href = canvas.toDataURL();
             link.click();
+            
+            // 캡처 직후: 렌더링 함수를 다시 호출하여 빨간 경고 복구
+            if (mode === 'semester') {
+                renderSemesterCells();
+            }
+        }).catch(err => {
+            alert("이미지 저장 중 오류가 발생했습니다.");
+            if (mode === 'semester') {
+                renderSemesterCells(); // 에러가 나도 원상복구
+            }
         });
     }
 </script>

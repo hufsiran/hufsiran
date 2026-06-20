@@ -171,14 +171,14 @@
                 <span style="flex:1">누적</span>
                 <span style="width:50px"></span>
             </div>
-            <div class="input-group">
-                <input type="text" id="newNameSem" placeholder="이름" style="flex:2">
+	<div class="input-group">
+                <input type="text" id="newNameSem" placeholder="이름" lang="ko" autocomplete="off" style="flex:2">
                 <select id="newTypeSem" style="flex:1">
                     <option value="grad">대학원</option>
                     <option value="under">학부생</option>
                 </select>
-                <input type="number" id="newTargetSem" value="100" placeholder="목표" style="flex:1">
-                <input type="number" id="newPrevSem" value="0" placeholder="누적" style="flex:1">
+                <input type="number" id="newTargetSem" placeholder="시간" style="flex:1">
+                <input type="number" id="newPrevSem" placeholder="시간" style="flex:1">
                 <button class="btn-add" onclick="addSemAssistant()">추가</button>
             </div>
             <ul id="taListSemester" class="ta-list"></ul>
@@ -186,20 +186,20 @@
 
         <div class="card">
             <h2>📅 문구 설정</h2>
-            <label style="font-size:0.9rem; font-weight:bold;">년/월</label>
-            <input type="text" id="semTitleDate" value="2026년 03월" class="live-text" data-target="dispSemTitle">
+<label style="font-size:0.9rem; font-weight:bold;">년/월</label>
+            <input type="text" id="semTitleDate" placeholder="예: 2026년 03월" class="live-text" data-target="dispSemTitle">
             
             <label style="font-size:0.9rem; font-weight:bold; margin-top:10px; display:block;">시작일</label>
-            <input type="date" id="semStartDate" value="2026-03-02" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #ced4da; border-radius:5px; margin-bottom:5px;" onchange="syncSemPeriod()">
+            <input type="date" id="semStartDate" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #ced4da; border-radius:5px; margin-bottom:5px;" onchange="syncSemPeriod()">
             
             <label style="font-size:0.9rem; font-weight:bold; display:block;">종료일</label>
-            <input type="date" id="semEndDate" value="2026-06-21" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #ced4da; border-radius:5px; margin-bottom:5px;" onchange="syncSemPeriod()">
+            <input type="date" id="semEndDate" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #ced4da; border-radius:5px; margin-bottom:5px;" onchange="syncSemPeriod()">
             
             <label style="font-size:0.9rem; font-weight:bold; display:block;">제외 공휴일 (YYYY-MM-DD, 쉼표 구분)</label>
             <input type="text" id="semHolidaysText" placeholder="예: 2026-05-05, 2026-06-06" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #ced4da; border-radius:5px; margin-bottom:10px;" onchange="renderTaList('semester')">
             
             <label style="font-size:0.9rem; font-weight:bold; display:block;">근무 기간(출력용)</label>
-            <input type="text" id="semPeriod" value="2026.03.02 - 2026.06.21" class="live-text" data-target="dispSemPeriod" style="margin-bottom:0;">
+            <input type="text" id="semPeriod" placeholder="예: 2026.03.02 - 2026.06.21" class="live-text" data-target="dispSemPeriod" style="margin-bottom:0;">
         </div>
 
         <div class="card">
@@ -275,27 +275,39 @@
                 <span style="flex:1">누적</span>
                 <span style="width:50px"></span>
             </div>
-            <div class="input-group">
-                <input type="text" id="newNameVac" placeholder="이름" style="flex:2">
+	<div class="input-group">
+                <input type="text" id="newNameVac" placeholder="이름" lang="ko" autocomplete="off" style="flex:2">
                 <select id="newTypeVac" style="flex:1">
                     <option value="grad">대학원</option>
                     <option value="under">학부생</option>
                 </select>
-                <input type="number" id="newTargetVac" value="50" placeholder="목표" style="flex:1">
-                <input type="number" id="newPrevVac" value="0" placeholder="누적" style="flex:1">
+                <input type="number" id="newTargetVac" placeholder="시간" style="flex:1">
+                <input type="number" id="newPrevVac" placeholder="시간" style="flex:1">
                 <button class="btn-add" onclick="addVacAssistant()">추가</button>
             </div>
             <ul id="taListVacation" class="ta-list"></ul>
         </div>
 
-        <div class="card">
-            <h2>📅 달력 설정</h2>
-            <div class="input-group">
-                <input type="number" id="vacYear" value="2026" style="width: 80px;">
+<div class="card">
+	<h2>📅 달력 설정</h2>
+            <div class="input-group" style="margin-bottom: 15px;">
+                <input type="number" id="vacYear" placeholder="예: 2026" style="width: 80px;">
                 <span style="font-weight:bold">년</span>
-                <input type="number" id="vacMonth" value="7" style="width: 60px;">
+                <input type="number" id="vacMonth" placeholder="예: 06" style="width: 60px;">
                 <span style="font-weight:bold">월</span>
                 <button class="btn-add" onclick="renderCalendar()">갱신</button>
+            </div>
+            
+            <label style="font-size:0.9rem; font-weight:bold; display:block;">방학 시작일 (해당 월)</label>
+            <div class="input-group">
+                <input type="number" id="vacStartDay" placeholder="예: 23" style="width:100%; box-sizing:border-box;" onchange="renderCalendar()">
+                <span style="font-weight:bold">일</span>
+            </div>
+            
+            <label style="font-size:0.9rem; font-weight:bold; display:block;">방학 종료일 (해당 월)</label>
+            <div class="input-group" style="margin-bottom:0;">
+                <input type="number" id="vacEndDay" placeholder="예: 31" style="width:100%; box-sizing:border-box;" onchange="renderCalendar()">
+                <span style="font-weight:bold">일</span>
             </div>
         </div>
 
@@ -372,7 +384,29 @@
         "#A0C4FF", "#BDB2FF", "#FFC6FF", "#84D8E2", "#F4A261"
     ];
 
-    window.onload = function() {
+window.onload = function() {
+        // --- 동적 날짜 주입 자동화 로직 ---
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const lastDate = new Date(yyyy, today.getMonth() + 1, 0).getDate();
+        
+        // 학기 중 초기화 (오늘 날짜 기준 1일~말일 세팅)
+        document.getElementById('semTitleDate').value = `${yyyy}년 ${mm}월`;
+        document.getElementById('dispSemTitle').innerText = `${yyyy}년 ${mm}월`;
+        document.getElementById('semStartDate').value = `${yyyy}-${mm}-01`;
+        document.getElementById('semEndDate').value = `${yyyy}-${mm}-${lastDate}`;
+        const pStr = `${yyyy}.${mm}.01 - ${yyyy}.${mm}.${lastDate}`;
+        document.getElementById('semPeriod').value = pStr;
+        document.getElementById('dispSemPeriod').innerText = pStr;
+
+        // 방학 중 초기화
+        document.getElementById('vacYear').value = yyyy;
+        document.getElementById('vacMonth').value = today.getMonth() + 1;
+        document.getElementById('vacStartDay').value = 1;
+        document.getElementById('vacEndDay').value = lastDate;
+        // ---------------------------------
+
         initSemesterTable();
         renderCalendar();
         
@@ -428,7 +462,6 @@
         return totalHours;
     }
 
-    // [수정] 수동 배정 시 예외 검사(checkSemesterExceptions) 다시 실행
     function overrideSemesterSlot(id, newName) {
         const oldName = semesterResult[id];
         if (newName) {
@@ -452,7 +485,7 @@
             }
             semesterResult[id] = "배정불가";
         }
-        checkSemesterExceptions(); // 변경 후 예외 재계산
+        checkSemesterExceptions(); 
         renderTaList('semester');
         renderSemesterCells();
     }
@@ -499,10 +532,12 @@
     function addSemAssistant(n, t, th, ph) {
         const name = n || document.getElementById('newNameSem').value;
         const type = t || document.getElementById('newTypeSem').value;
-        const target = th || parseInt(document.getElementById('newTargetSem').value);
+        let targetVal = document.getElementById('newTargetSem').value;
+        const target = th || (targetVal === "" ? 0 : parseInt(targetVal));
         const prev = ph || parseInt(document.getElementById('newPrevSem').value) || 0;
         
-        if(!name) return alert("이름 입력");
+        if(!name) return alert("이름을 입력해 주세요.");
+        if(target <= 0) return alert("⚠️ 오류: 목표 시간은 1 이상이어야 합니다.\n(입력하지 않으면 자동 배정 로직이 붕괴됩니다.)");
         
         semAssistants.push({ 
             id: Date.now(), name, type, 
@@ -513,17 +548,19 @@
         });
         
         document.getElementById('newNameSem').value = "";
-        document.getElementById('newPrevSem').value = "0"; 
+        document.getElementById('newPrevSem').value = ""; 
         renderTaList('semester'); renderFooterNames('semester'); selectTa(semAssistants.length-1);
     }
 
     function addVacAssistant(n, t, th, ph) {
         const name = n || document.getElementById('newNameVac').value;
         const type = t || document.getElementById('newTypeVac').value;
-        const target = th || parseInt(document.getElementById('newTargetVac').value);
+        let targetVal = document.getElementById('newTargetVac').value;
+        const target = th || (targetVal === "" ? 0 : parseInt(targetVal));
         const prev = ph || parseInt(document.getElementById('newPrevVac').value) || 0;
 
-        if(!name) return alert("이름 입력");
+        if(!name) return alert("이름을 입력해 주세요.");
+        if(target <= 0) return alert("⚠️ 오류: 목표 시간은 1 이상이어야 합니다.\n(입력하지 않으면 자동 배정 로직이 붕괴됩니다.)");
 
         vacAssistants.push({ 
             id: Date.now(), name, type, 
@@ -534,7 +571,7 @@
         });
 
         document.getElementById('newNameVac').value = "";
-        document.getElementById('newPrevVac').value = "0";
+        document.getElementById('newPrevVac').value = "";
         renderTaList('vacation'); renderFooterNames('vacation'); selectTa(vacAssistants.length-1);
     }
 
@@ -834,7 +871,7 @@
         alert("학기 근무표 배정 완료!\n(※ 붉은색 테두리: 1시간 단독 근무 또는 일 4시간 초과 예외 배정)");
     }
 
-    function renderCalendar() {
+	function renderCalendar() {
         const year = parseInt(document.getElementById('vacYear').value);
         const month = parseInt(document.getElementById('vacMonth').value);
         document.getElementById('dispVacTitle').innerText = `${year}년 ${month<10?'0'+month:month}월`;
@@ -844,23 +881,34 @@
         const firstDay = new Date(year, month-1, 1).getDay();
         const lastDate = new Date(year, month, 0).getDate();
         
+        let sDay = parseInt(document.getElementById('vacStartDay').value) || 1;
+        let eDay = parseInt(document.getElementById('vacEndDay').value) || lastDate;
+        if (sDay < 1) sDay = 1;
+        if (eDay > lastDate) eDay = lastDate;
+        
         let row = document.createElement('tr');
         let cnt = 1;
         for(let i=0; i<firstDay; i++) row.appendChild(document.createElement('td'));
-        for(let i=firstDay; i<7; i++) row.appendChild(createCalCell(year, month, cnt++, i));
+        for(let i=firstDay; i<7; i++) {
+            let isOutOfRange = (cnt < sDay || cnt > eDay);
+            row.appendChild(createCalCell(year, month, cnt++, i, isOutOfRange));
+        }
         tbody.appendChild(row);
         while(cnt <= lastDate) {
             row = document.createElement('tr');
             for(let i=0; i<7; i++) {
                 if(cnt > lastDate) row.appendChild(document.createElement('td'));
-                else row.appendChild(createCalCell(year, month, cnt++, i));
+                else {
+                    let isOutOfRange = (cnt < sDay || cnt > eDay);
+                    row.appendChild(createCalCell(year, month, cnt++, i, isOutOfRange));
+                }
             }
             tbody.appendChild(row);
         }
         renderCalendarCells();
     }
 
-    function createCalCell(y, m, d, dw) {
+function createCalCell(y, m, d, dw, isOutOfRange) {
         const td = document.createElement('td');
         const key = `${y}-${m}-${d}`;
         td.dataset.date = key;
@@ -870,9 +918,22 @@
         td.appendChild(span);
         if (dw===0 || dw===6) td.style.backgroundColor = "#f8f9fa";
         
-        td.onclick = () => {
-            if (dw !== 0 && dw !== 6) clickVacationCell(key);
-        };
+        if (isOutOfRange) {
+            td.style.backgroundColor = "#e9ecef";
+            td.style.pointerEvents = "none";
+            const outTxt = document.createElement('div');
+            outTxt.innerText = "학기 중";
+            outTxt.style.color = "#adb5bd";
+            outTxt.style.fontWeight = "bold";
+            outTxt.style.textAlign = "center";
+            outTxt.style.marginTop = "15px";
+            outTxt.style.letterSpacing = "2px";
+            td.appendChild(outTxt);
+        } else {
+            td.onclick = () => {
+                if (dw !== 0 && dw !== 6) clickVacationCell(key);
+            };
+        }
         
         return td;
     }
@@ -924,7 +985,7 @@
         });
     }
 
-    function generateVacation() {
+function generateVacation() {
         if (vacAssistants.length === 0) return alert("조교 없음");
         vacAssistants.forEach(a => a.assigned = 0);
         vacationResult = {};
@@ -932,9 +993,15 @@
         const y = parseInt(document.getElementById('vacYear').value);
         const m = parseInt(document.getElementById('vacMonth').value);
         const last = new Date(y, m, 0).getDate();
+        
+        let sDay = parseInt(document.getElementById('vacStartDay').value) || 1;
+        let eDay = parseInt(document.getElementById('vacEndDay').value) || last;
+        if (sDay < 1) sDay = 1;
+        if (eDay > last) eDay = last;
+
         let dates = [];
         
-        for(let d=1; d<=last; d++) {
+        for(let d=sDay; d<=eDay; d++) {
             const k = `${y}-${m}-${d}`;
             const dw = new Date(y, m-1, d).getDay();
             if (dw!==0 && dw!==6 && !globalHolidays.has(k)) dates.push(k);

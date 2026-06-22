@@ -124,9 +124,10 @@
         .cell-lunch { background-color: #e9ecef; color: #868e96; pointer-events: none; font-size: 0.9rem; font-weight: bold; letter-spacing: 5px; }
         .cell-holiday { background-color: #fff5f5; }
         .cell-holiday .date-num { color: #f03e3e; }
-        .cell-holiday::after { content: "휴일"; color: #f03e3e; font-size: 1rem; font-weight: bold; display: block; margin-top: 20px; }
+	.cell-holiday::after { content: "휴일"; color: #f03e3e; font-size: 1rem; font-weight: bold; display: block; margin-top: 20px; }
         .cell-assigned { font-weight: 800; color: black; font-size: 1.1rem; }
         .ta-badge { display: block; margin: 5px auto; padding: 5px; border-radius: 5px; font-weight: 800; font-size: 1.2rem; color: black; width: 90%; }
+        .ta-badge.badge-half { margin: 2px auto; padding: 3px; font-size: 0.95rem; line-height: 1.1; font-weight: 800; width: 95%; }
 
         .print-footer { border-top: 2px solid #343a40; padding-top: 15px; }
         .pf-title { font-family: 'Jua'; font-size: 1.3rem; margin-bottom: 10px; display: block; color: #212529; text-align: left; }
@@ -318,12 +319,22 @@
     </div>
 
     <div class="main-content">
-        <div class="tab-menu" style="max-width: 1123px;">
+<div class="tab-menu" style="max-width: 1123px;">
             <button class="tab-btn holiday-mode active" id="btnVacHoliday" onclick="setSubMode('vacation', 'holiday')">1. 공통 휴일 체크</button>
             <button class="tab-btn" id="btnVacInput" onclick="setSubMode('vacation', 'input')">2. 개인 불가 체크</button>
             <button class="tab-btn" id="btnVacView" onclick="setSubMode('vacation', 'view')">3. 결과 확인</button>
         </div>
-        <div id="msgVacation" class="tip-box" style="max-width: 1123px; width: 100%;">달력에서 설날, 공휴일 등을 클릭하여 휴일 지정</div>
+        
+        <div id="vacationControlArea" style="max-width: 1123px; width: 100%; display:flex; justify-content: space-between; align-items:center; margin-bottom:10px;">
+            <div id="msgVacation" class="tip-box" style="margin-bottom:0; flex-grow:1; margin-right:15px;">달력에서 설날, 공휴일 등을 클릭하여 휴일 지정</div>
+            
+            <div id="vacAssignToggle" style="display:none; background:white; padding:8px 15px; border-radius:5px; border:1px solid #ced4da; font-size:0.9rem; font-weight:bold;">
+                <span style="margin-right:10px; color:#495057;">배정/불가 모드:</span>
+                <label style="margin-right:8px; cursor:pointer;"><input type="radio" name="vMode" value="full" checked onchange="window.vacAssignMode=this.value"> 종일(4H)</label>
+                <label style="margin-right:8px; cursor:pointer;"><input type="radio" name="vMode" value="am" onchange="window.vacAssignMode=this.value"> 오전(2H)</label>
+                <label style="cursor:pointer;"><input type="radio" name="vMode" value="pm" onchange="window.vacAssignMode=this.value"> 오후(2H)</label>
+            </div>
+        </div>
 
         <div id="vacationA4" class="a4-preview">
             <div class="print-header">
@@ -371,12 +382,13 @@
     let subModeSem = 'input';
     let subModeVac = 'holiday';
 
-    let semesterResult = {};
+let semesterResult = {};
     let vacationResult = {};
     let globalHolidays = new Set();
     window.semesterExceptions = new Set(); // 제약 조건 위반 예외 마킹용
+    window.vacAssignMode = 'full'; // [추가] 방학 배정 모드 (full, am, pm)
 
-    const times = [9, 10, 11, 12, 13, 14, 15, 16]; 
+    const times = [9, 10, 11, 12, 13, 14, 15, 16];
     const days = ["월", "화", "수", "목", "금"];
     
     const pastelColors = [
@@ -503,7 +515,7 @@ window.onload = function() {
         else { renderCalendarCells(); renderTaList('vacation'); }
     }
 
-    function setSubMode(main, sub) {
+function setSubMode(main, sub) {
         if (main === 'semester') {
             subModeSem = sub;
             document.getElementById('btnSemInput').classList.toggle('active', sub === 'input');
@@ -521,9 +533,17 @@ window.onload = function() {
             document.getElementById('btnVacView').classList.toggle('active', sub === 'view');
             
             const msg = document.getElementById('msgVacation');
-            if (sub === 'holiday') msg.innerText = "달력에서 설날, 공휴일 등을 클릭하여 휴일 지정";
-            else if (sub === 'input') msg.innerText = "조교 선택 후 시간표를 클릭하여 '불가(X)' 체크";
-            else msg.innerText = "배정 결과 확인 후 근무표 이미지로 저장";
+            const toggleUI = document.getElementById('vacAssignToggle');
+            if (sub === 'holiday') {
+                msg.innerText = "달력에서 설날, 공휴일 등을 클릭하여 휴일 지정";
+                if(toggleUI) toggleUI.style.display = 'none';
+            } else if (sub === 'input') {
+                msg.innerText = "조교와 [종일/오전/오후] 모드를 선택 후 달력을 클릭해 '불가(X)' 체크";
+                if(toggleUI) toggleUI.style.display = 'inline-block';
+            } else {
+                msg.innerText = "배정 결과 확인 후 근무표 이미지로 저장";
+                if(toggleUI) toggleUI.style.display = 'none';
+            }
             
             renderCalendarCells();
         }
@@ -938,7 +958,7 @@ function createCalCell(y, m, d, dw, isOutOfRange) {
         return td;
     }
 
-    function clickVacationCell(key) {
+function clickVacationCell(key) {
         if (subModeVac === 'holiday') {
             if (globalHolidays.has(key)) globalHolidays.delete(key);
             else globalHolidays.add(key);
@@ -946,8 +966,22 @@ function createCalCell(y, m, d, dw, isOutOfRange) {
             if (selectedTaIndex === -1) return alert("조교 선택 필요");
             if (globalHolidays.has(key)) return;
             const ta = vacAssistants[selectedTaIndex];
-            if (ta.impossible.has(key)) ta.impossible.delete(key);
-            else ta.impossible.add(key);
+            const keyAm = key + '-AM';
+            const keyPm = key + '-PM';
+            
+            if (window.vacAssignMode === 'full') {
+                if (ta.impossible.has(keyAm) && ta.impossible.has(keyPm)) {
+                    ta.impossible.delete(keyAm); ta.impossible.delete(keyPm);
+                } else {
+                    ta.impossible.add(keyAm); ta.impossible.add(keyPm);
+                }
+            } else if (window.vacAssignMode === 'am') {
+                if (ta.impossible.has(keyAm)) ta.impossible.delete(keyAm);
+                else ta.impossible.add(keyAm);
+            } else if (window.vacAssignMode === 'pm') {
+                if (ta.impossible.has(keyPm)) ta.impossible.delete(keyPm);
+                else ta.impossible.add(keyPm);
+            }
         }
         renderCalendarCells();
     }
@@ -962,24 +996,53 @@ function createCalCell(y, m, d, dw, isOutOfRange) {
             if (globalHolidays.has(key)) {
                 td.classList.add('cell-holiday');
             } else if (subModeVac === 'input' && selectedTaIndex !== -1) {
-                if (vacAssistants[selectedTaIndex].impossible.has(key)) {
+                const ta = vacAssistants[selectedTaIndex];
+                const hasAm = ta.impossible.has(key + '-AM');
+                const hasPm = ta.impossible.has(key + '-PM');
+                
+                if (hasAm && hasPm) {
                     td.classList.add('cell-impossible');
                     const div = document.createElement('div');
-                    div.innerText = "불가";
-                    div.style.color = "#c92a2a";
-                    div.style.fontWeight = "bold";
-                    div.style.marginTop = "5px";
-                    div.style.fontSize = "0.9rem";
+                    div.innerText = "종일 불가";
+                    div.style.color = "#c92a2a"; div.style.fontWeight = "bold"; div.style.marginTop = "5px"; div.style.fontSize = "0.9rem";
+                    td.appendChild(div);
+                } else if (hasAm) {
+                    td.classList.add('cell-impossible');
+                    const div = document.createElement('div');
+                    div.innerText = "오전 불가";
+                    div.style.color = "#c92a2a"; div.style.fontWeight = "bold"; div.style.marginTop = "5px"; div.style.fontSize = "0.9rem";
+                    td.appendChild(div);
+                } else if (hasPm) {
+                    td.classList.add('cell-impossible');
+                    const div = document.createElement('div');
+                    div.innerText = "오후 불가";
+                    div.style.color = "#c92a2a"; div.style.fontWeight = "bold"; div.style.marginTop = "5px"; div.style.fontSize = "0.9rem";
                     td.appendChild(div);
                 }
             } else if (subModeVac === 'view') {
-                const name = vacationResult[key];
-                if (name) {
-                    const div = document.createElement('div');
-                    div.className = 'ta-badge';
-                    div.innerText = name;
-                    div.style.backgroundColor = name === "배정불가" ? "#ffc9c9" : getNameColor(name);
-                    td.appendChild(div);
+                const nameAm = vacationResult[key + '-AM'];
+                const namePm = vacationResult[key + '-PM'];
+                
+                if (nameAm || namePm) {
+                    if (nameAm === namePm) {
+                        const div = document.createElement('div');
+                        div.className = 'ta-badge'; div.innerText = nameAm;
+                        div.style.backgroundColor = nameAm === "배정불가" ? "#ffc9c9" : getNameColor(nameAm);
+                        td.appendChild(div);
+                    } else {
+                        if (nameAm) {
+                            const divAm = document.createElement('div');
+                            divAm.className = 'ta-badge badge-half'; divAm.innerText = `오전: ${nameAm}`;
+                            divAm.style.backgroundColor = nameAm === "배정불가" ? "#ffc9c9" : getNameColor(nameAm);
+                            td.appendChild(divAm);
+                        }
+                        if (namePm) {
+                            const divPm = document.createElement('div');
+                            divPm.className = 'ta-badge badge-half'; divPm.innerText = `오후: ${namePm}`;
+                            divPm.style.backgroundColor = namePm === "배정불가" ? "#ffc9c9" : getNameColor(namePm);
+                            td.appendChild(divPm);
+                        }
+                    }
                 }
             }
         });
@@ -1008,17 +1071,35 @@ function generateVacation() {
         }
         dates.sort(() => Math.random() - 0.5);
 
-        dates.forEach(k => {
-            let cands = vacAssistants.filter(a => !a.impossible.has(k));
-            if (cands.length === 0) vacationResult[k] = "배정불가";
-            else {
-                cands.sort((a,b) => {
-                    const ratioA = (a.prevHours + a.assigned) / a.targetHours;
-                    const ratioB = (b.prevHours + b.assigned) / b.targetHours;
-                    return ratioA - ratioB;
-                });
-                cands[0].assigned += 4;
-                vacationResult[k] = cands[0].name;
+dates.forEach(k => {
+            let keyAm = k + '-AM';
+            let keyPm = k + '-PM';
+            
+            // 1. 종일(4H) 배정 시도
+            let fullCands = vacAssistants.filter(a => !a.impossible.has(keyAm) && !a.impossible.has(keyPm));
+            if (fullCands.length > 0) {
+                fullCands.sort((a,b) => ((a.prevHours + a.assigned)/a.targetHours) - ((b.prevHours + b.assigned)/b.targetHours));
+                fullCands[0].assigned += 4;
+                vacationResult[keyAm] = fullCands[0].name;
+                vacationResult[keyPm] = fullCands[0].name;
+            } else {
+                // 2. 종일이 안 되면 오전(2H) 배정 시도
+                let amCands = vacAssistants.filter(a => !a.impossible.has(keyAm));
+                if (amCands.length === 0) vacationResult[keyAm] = "배정불가";
+                else {
+                    amCands.sort((a,b) => ((a.prevHours + a.assigned)/a.targetHours) - ((b.prevHours + b.assigned)/b.targetHours));
+                    amCands[0].assigned += 2;
+                    vacationResult[keyAm] = amCands[0].name;
+                }
+                
+                // 3. 오후(2H) 배정 시도
+                let pmCands = vacAssistants.filter(a => !a.impossible.has(keyPm));
+                if (pmCands.length === 0) vacationResult[keyPm] = "배정불가";
+                else {
+                    pmCands.sort((a,b) => ((a.prevHours + a.assigned)/a.targetHours) - ((b.prevHours + b.assigned)/b.targetHours));
+                    pmCands[0].assigned += 2;
+                    vacationResult[keyPm] = pmCands[0].name;
+                }
             }
         });
         renderTaList('vacation');

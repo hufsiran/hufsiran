@@ -986,6 +986,59 @@ function clickVacationCell(key) {
         renderCalendarCells();
     }
 
+// --- [추가됨] 방학 근무 수동 배정용 정산 함수 ---
+    function overrideVacationSlot(dateKey, ampm, newName) {
+        const key = dateKey + '-' + ampm;
+        const oldName = vacationResult[key];
+        
+        if (newName) {
+            const newTa = vacAssistants.find(a => a.name === newName);
+            if (newTa && newTa.impossible.has(key)) {
+                if (!confirm(`⚠️ [${newName}] 조교는 해당 시간에 [불가]를 신청했습니다.\n그래도 강제로 배정하시겠습니까?`)) {
+                    renderCalendarCells(); 
+                    return;
+                }
+            }
+            if (oldName && oldName !== "배정불가") {
+                const oldTa = vacAssistants.find(a => a.name === oldName);
+                if (oldTa) oldTa.assigned -= 2; // 기존 조교 2시간 차감
+            }
+            newTa.assigned += 2; // 새 조교 2시간 추가
+            vacationResult[key] = newName;
+        } else {
+            if (oldName && oldName !== "배정불가") {
+                const oldTa = vacAssistants.find(a => a.name === oldName);
+                if (oldTa) oldTa.assigned -= 2;
+            }
+            vacationResult[key] = "배정불가";
+        }
+        
+        renderTaList('vacation');
+        renderCalendarCells();
+    }
+
+    // --- [추가됨] 투명 드롭다운 생성기 ---
+    function createVacSelectOptions(keyAmPm, currentName) {
+        let availableOps = [];
+        let impossibleOps = [];
+        
+        vacAssistants.forEach(a => {
+            let isSelected = (a.name === currentName) ? 'selected' : '';
+            let op = `<option value="${a.name}" ${isSelected}>${a.name}</option>`;
+            if (a.impossible.has(keyAmPm)) impossibleOps.push(op);
+            else availableOps.push(op);
+        });
+
+        let optionsHtml = `<option value="">--배정 해제--</option>`;
+        if (currentName === "배정불가") optionsHtml += `<option value="" selected>배정불가</option>`;
+        
+        if(availableOps.length > 0) optionsHtml += `<optgroup label="[배정 가능]">${availableOps.join('')}</optgroup>`;
+        if(impossibleOps.length > 0) optionsHtml += `<optgroup label="--- [불가 조교] ---">${impossibleOps.join('')}</optgroup>`;
+        
+        return optionsHtml;
+    }
+
+    // --- [수정됨] 달력 렌더링 및 듀얼 스위치 UI 이식 ---
     function renderCalendarCells() {
         document.querySelectorAll('#vacationBody td[data-date]').forEach(td => {
             const key = td.dataset.date;
@@ -1019,29 +1072,69 @@ function clickVacationCell(key) {
                     div.style.color = "#c92a2a"; div.style.fontWeight = "bold"; div.style.marginTop = "5px"; div.style.fontSize = "0.9rem";
                     td.appendChild(div);
                 }
-            } else if (subModeVac === 'view') {
+} else if (subModeVac === 'view') {
                 const nameAm = vacationResult[key + '-AM'];
                 const namePm = vacationResult[key + '-PM'];
                 
                 if (nameAm || namePm) {
+                    td.style.padding = '0'; // 달력 기본 패딩 무력화 (여백 확보)
+                    
                     if (nameAm === namePm) {
+                        // --- 종일(4H) 통합 렌더링 (다이어트 적용) ---
                         const div = document.createElement('div');
-                        div.className = 'ta-badge'; div.innerText = nameAm;
+                        div.className = 'ta-badge'; 
                         div.style.backgroundColor = nameAm === "배정불가" ? "#ffc9c9" : getNameColor(nameAm);
+                        div.style.position = 'relative';
+                        div.style.margin = '2px auto 0 auto'; // 상단 마진 대폭 축소
+                        div.style.height = '42px'; // 상대 높이(calc) 제거, 절대 높이 고정
+                        div.style.fontSize = '1.1rem'; // 폰트 미세 축소
+                        div.style.display = 'flex'; div.style.alignItems = 'center'; div.style.justifyContent = 'center';
+                        div.innerHTML = `
+                            <select onchange="overrideVacationSlot('${key}', 'AM', this.value)" onclick="event.stopPropagation()" style="position:absolute; top:0; left:0; width:100%; height:50%; opacity:0; cursor:pointer;" title="오전(상단) 변경">
+                                ${createVacSelectOptions(key + '-AM', nameAm)}
+                            </select>
+                            <select onchange="overrideVacationSlot('${key}', 'PM', this.value)" onclick="event.stopPropagation()" style="position:absolute; bottom:0; left:0; width:100%; height:50%; opacity:0; cursor:pointer;" title="오후(하단) 변경">
+                                ${createVacSelectOptions(key + '-PM', namePm)}
+                            </select>
+                            <span style="pointer-events:none; position:relative; z-index:1;">${nameAm}</span>
+                        `;
                         td.appendChild(div);
-                    } else {
+		} else {
+                        // --- 오전/오후(2H) 분리 렌더링 (가독성 개선) ---
+                        const wrap = document.createElement('div');
+                        wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; 
+                        wrap.style.gap = '3px'; // 배지 사이 간격 미세 확보
+                        wrap.style.marginTop = '0px'; // 상단 마진을 없애서 아래쪽으로 팽창할 공간 확보
+                        
                         if (nameAm) {
                             const divAm = document.createElement('div');
-                            divAm.className = 'ta-badge badge-half'; divAm.innerText = `오전: ${nameAm}`;
+                            divAm.className = 'ta-badge badge-half'; divAm.style.position = 'relative';
                             divAm.style.backgroundColor = nameAm === "배정불가" ? "#ffc9c9" : getNameColor(nameAm);
-                            td.appendChild(divAm);
+                            // 패딩을 4px로 늘리고, 폰트 사이즈를 0.95rem으로 키움
+                            divAm.style.margin = '0 auto'; divAm.style.padding = '4px 0'; divAm.style.fontSize = '0.95rem'; 
+                            divAm.innerHTML = `
+                                <select onchange="overrideVacationSlot('${key}', 'AM', this.value)" onclick="event.stopPropagation()" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;" title="오전 변경">
+                                    ${createVacSelectOptions(key + '-AM', nameAm)}
+                                </select>
+                                <span style="pointer-events:none; position:relative; z-index:1;">오전: ${nameAm}</span>
+                            `;
+                            wrap.appendChild(divAm);
                         }
                         if (namePm) {
                             const divPm = document.createElement('div');
-                            divPm.className = 'ta-badge badge-half'; divPm.innerText = `오후: ${namePm}`;
+                            divPm.className = 'ta-badge badge-half'; divPm.style.position = 'relative';
                             divPm.style.backgroundColor = namePm === "배정불가" ? "#ffc9c9" : getNameColor(namePm);
-                            td.appendChild(divPm);
+                            // 패딩을 4px로 늘리고, 폰트 사이즈를 0.95rem으로 키움
+                            divPm.style.margin = '0 auto'; divPm.style.padding = '4px 0'; divPm.style.fontSize = '0.95rem'; 
+                            divPm.innerHTML = `
+                                <select onchange="overrideVacationSlot('${key}', 'PM', this.value)" onclick="event.stopPropagation()" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;" title="오후 변경">
+                                    ${createVacSelectOptions(key + '-PM', namePm)}
+                                </select>
+                                <span style="pointer-events:none; position:relative; z-index:1;">오후: ${namePm}</span>
+                            `;
+                            wrap.appendChild(divPm);
                         }
+                        td.appendChild(wrap);
                     }
                 }
             }

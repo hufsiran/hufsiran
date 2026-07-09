@@ -855,9 +855,25 @@ function setSubMode(main, sub) {
             return false;
         }
 
-        let dayIndices = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5);
+let dayIndices = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5);
 
         dayIndices.forEach(d => {
+            // 1. [신규 로직] 오전/오후 단절을 막고 '점심 관통'을 강제하는 일일 템플릿(Pattern) 우선 시도
+            let idealPatterns = [
+                [[9,10,11,13], [14,15,16]], // 4시간(오전+점심) + 3시간(오후)
+                [[9,10], [11,13,14], [15,16]], // 2시간 + 3시간(가운데 점심) + 2시간
+                [[9,10], [11,13], [14,15,16]]  // 2시간 + 2시간(가운데 점심) + 3시간
+            ].sort(() => Math.random() - 0.5);
+
+            // 뽑힌 이상적 템플릿 중 하나를 먼저 무조건 꽂아넣기 시도
+            idealPatterns[0].forEach(timesArr => {
+                let block = timesArr.map(t => `${d}-${t}`);
+                if (block.every(s => semesterResult[s] === null)) {
+                    assignBlock(block, d);
+                }
+            });
+
+            // 2. 조교들의 불가(X) 스케줄 때문에 템플릿이 깨져서 구멍이 났다면, 기존의 덩어리(테트리스) 방식으로 잔여 빈칸 안전하게 메꾸기
             let b4 = [[9,10,11,13], [10,11,13,14], [11,13,14,15], [13,14,15,16]].sort(() => Math.random() - 0.5);
             let b3 = [[9,10,11], [10,11,13], [11,13,14], [13,14,15], [14,15,16]].sort(() => Math.random() - 0.5);
             let b2 = [[9,10], [10,11], [11,13], [13,14], [14,15], [15,16]].sort(() => Math.random() - 0.5);

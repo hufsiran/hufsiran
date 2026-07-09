@@ -229,22 +229,25 @@
         const styles = [];
         const days = ["일","월","화","수","목","금","토"];
 
-        let rowIdx = 3; 
+        // 달력과 나란히 시작하기 위한 시작 좌표 추적
         let excelStartRow = 4;
+        let monthStartIndexInData = 3;
         let curMonth = periodRows[0].s.getMonth();
 
         periodRows.forEach(period => {
             let cur = new Date(period.s);
             while (cur <= period.e) {
                 if (cur.getMonth() !== curMonth) {
-                    addSummary(data, styles, excelStartRow, rowIdx);
-                    rowIdx = data.length; 
-                    excelStartRow = rowIdx + 1; 
+                    // 월이 바뀔 때, 밑바닥이 아니라 해당 월이 시작했던 'monthStartIndexInData' 좌표로 돌아가서 요약표를 그림
+                    addSummary(data, styles, excelStartRow, data.length, monthStartIndexInData);
+                    monthStartIndexInData = data.length; 
+                    excelStartRow = monthStartIndexInData + 1; 
                     curMonth = cur.getMonth();
                 }
 
                 const dStr = cur.toISOString().slice(0, 10);
                 const dayNum = cur.getDay();
+                // 17칸이 아니라 12칸만 채워서 빈칸에 거미줄(테두리)이 쳐지는 것을 방어
                 let row = Array(12).fill("");
                 row[2] = dStr; row[3] = days[dayNum];
 
@@ -256,18 +259,18 @@
                 } else {
                     row[7] = "점심시간"; 
                     if (period.t === 'vac') {
-                        styles.push({ r: rowIdx, type: 'vacation' });
+                        styles.push({ r: data.length, type: 'vacation' });
                     }
                 }
 
+                if (isGray) styles.push({ r: data.length, type: 'gray' });
                 data.push(row);
-                if (isGray) styles.push({ r: rowIdx, type: 'gray' });
 
                 cur.setDate(cur.getDate() + 1);
-                rowIdx++;
             }
         });
-        addSummary(data, styles, excelStartRow, rowIdx);
+        // 마지막 달의 요약표 처리
+        addSummary(data, styles, excelStartRow, data.length, monthStartIndexInData);
 
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(data);
@@ -278,8 +281,8 @@
             {wch:20}, {wch:10}, {wch:12}, {wch:5}, // A-D
             {wch:10}, {wch:10}, {wch:10}, {wch:10}, // E-H
             {wch:10}, {wch:10}, {wch:10}, {wch:10}, // I-L
-            {wch:5}, // M (공백)
-            {wch:15}, {wch:10}, {wch:10}, {wch:10} // N, O, P, Q
+            {wch:5}, // M (공백, 테두리 없음)
+            {wch:15}, {wch:10}, {wch:10}, {wch:10} // N, O, P, Q (요약표 구역)
         ];
 
         const range = XLSX.utils.decode_range(ws['!ref']);
@@ -294,14 +297,16 @@
                 };
 
                 if (R === 0) { ws[ref].s.font = { sz: 18, bold: true }; ws[ref].s.border = {}; }
-                else if (R === 2) { ws[ref].s.fill = { fgColor: { rgb: "E2E2E2" } }; ws[ref].s.font = { bold: true }; }
+                else if (R === 2 && C < 12) { ws[ref].s.fill = { fgColor: { rgb: "E2E2E2" } }; ws[ref].s.font = { bold: true }; }
                 else if (C === 7 && ws[ref].v === "점심시간") {
-                    ws[ref].s.fill = { fgColor: { rgb: "FCE4D6" } };
+                    // 점심시간 눅진한 녹색 처리
+                    ws[ref].s.fill = { fgColor: { rgb: "93C47D" } };
+                    ws[ref].s.font = { bold: true, color: { rgb: "1D4F28" } };
                 }
                 else {
-                    const st = styles.find(s => s.r === R);
-                    if (st) {
-                        if (st.type === 'gray') {
+                    const rowStyles = styles.filter(s => s.r === R);
+                    rowStyles.forEach(st => {
+                        if (st.type === 'gray' && C < 12) {
                             ws[ref].s.fill = { fgColor: { rgb: "D9D9D9" } };
                         }
                         else if (st.type === 'vacation') {
@@ -309,7 +314,11 @@
                                 ws[ref].s.fill = { fgColor: { rgb: "D9D9D9" } };
                             }
                         }
-                        else if (st.type === 'sumHead' || st.type === 'sumTotal') {
+                        else if (st.type === 'sumHead' && C >= 13) {
+                            ws[ref].s.fill = { fgColor: { rgb: "F4F4F4" } };
+                            ws[ref].s.font = { bold: true };
+                        }
+                        else if (st.type === 'sumTotal' && C >= 13) {
                             ws[ref].s.fill = { fgColor: { rgb: "F4F4F4" } };
                             ws[ref].s.font = { bold: true };
                         }
@@ -317,7 +326,7 @@
                             ws[ref].s.fill = { fgColor: { rgb: st.color.replace('#','') } };
                             ws[ref].s.font = { bold: true };
                         }
-                    }
+                    });
                 }
             }
         }
@@ -325,50 +334,51 @@
         XLSX.writeFile(wb, title + ".xlsx");
     }
 
-    function addSummary(data, styles, startRow, endRow) {
+    function addSummary(data, styles, startRow, endRow, startIndex) {
         if (assistants.length === 0) return;
 
-        let hRow = Array(17).fill(""); 
-        hRow[13] = "조교명"; hRow[14] = "월 근무"; hRow[15] = "누적 근무"; hRow[16] = "목표 근무";
-        
-        data.push(hRow);
-        
-        let rIdx = data.length - 1;
-        styles.push({ r: rIdx, type: 'sumHead' });
+        let curOffset = 0;
+        // 병렬 렌더링을 위해 배열에 빈칸이 없으면 생성하고, 있으면 재활용하는 함수
+        function getOrAddRow(idx) {
+            while (data.length <= idx) {
+                data.push([]);
+            }
+            return data[idx];
+        }
 
-        const dataEndExcelRow = endRow; 
-        const firstRowExcelIndex = rIdx + 2; 
+        let hRow = getOrAddRow(startIndex + curOffset);
+        hRow[13] = "조교명"; hRow[14] = "월 근무"; hRow[15] = "누적 근무"; hRow[16] = "목표 근무";
+        styles.push({ r: startIndex + curOffset, type: 'sumHead' });
+        curOffset++;
+
+        const firstRowExcelIndex = startIndex + curOffset + 1;
 
         assistants.forEach(a => {
-            rIdx++;
-            let r = Array(17).fill("");
+            let r = getOrAddRow(startIndex + curOffset);
             r[13] = a.name;
             r[16] = a.target; 
 
-            if (dataEndExcelRow >= startRow) {
-                r[14] = { f: `COUNTIF(E${startRow}:L${dataEndExcelRow}, "${a.name}")` };
-                r[15] = { f: `COUNTIF(E4:L${dataEndExcelRow}, "${a.name}")` };
+            if (endRow >= startRow) {
+                r[14] = { f: `COUNTIF(E${startRow}:L${endRow}, "${a.name}")` };
+                r[15] = { f: `COUNTIF(E4:L${endRow}, "${a.name}")` };
             } else {
                 r[14] = 0; r[15] = 0;
             }
 
-            data.push(r);
-            styles.push({ r: rIdx, type: 'sumName', color: a.color });
+            styles.push({ r: startIndex + curOffset, type: 'sumName', color: a.color });
+            curOffset++;
         });
 
-        rIdx++;
-        const lastRowExcelIndex = rIdx; 
+        const lastRowExcelIndex = startIndex + curOffset; 
         
-        let totalRow = Array(17).fill("");
+        let totalRow = getOrAddRow(startIndex + curOffset);
         totalRow[13] = "합계";
         totalRow[14] = { f: `SUM(O${firstRowExcelIndex}:O${lastRowExcelIndex})` };
         totalRow[15] = { f: `SUM(P${firstRowExcelIndex}:P${lastRowExcelIndex})` };
         totalRow[16] = { f: `SUM(Q${firstRowExcelIndex}:Q${lastRowExcelIndex})` };
         
-        data.push(totalRow);
-        styles.push({ r: rIdx, type: 'sumTotal' });
-        
-        data.push(Array(17).fill(""));
+        styles.push({ r: startIndex + curOffset, type: 'sumTotal' });
+        curOffset++;
     }
 </script>
 

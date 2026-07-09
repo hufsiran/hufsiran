@@ -18,7 +18,8 @@
             color: #333; 
             display: flex; 
             flex-direction: column; 
-            min-height: 100vh;
+            height: 100vh; /* ★ 핵심: 100% 화면 꽉 채움 */
+            overflow: hidden; /* ★ 핵심: 상하 스크롤바 원천 차단 */
         }
 
         /* === [보안] 로그인 오버레이 스타일 === */
@@ -39,9 +40,10 @@
         header {
             background-color: #0b2a4a;
             color: white;
-            padding: 20px 0;
+            padding: 30px 0; /* 여백을 약간 늘려 안정감 부여 */
             text-align: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            flex-shrink: 0;
         }
         .header-content {
             max-width: 1200px;
@@ -49,48 +51,50 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
         .logo-box span {
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             display: inline-block;
             background: white;
-            width: 70px;
-            height: 70px;
-            line-height: 70px;
+            width: 65px;
+            height: 65px;
+            line-height: 65px;
             border-radius: 50%;
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         }
         h1 {
             font-family: 'Noto Serif KR', serif;
-            font-size: 1.8rem;
+            font-size: 1.7rem;
             letter-spacing: -0.5px;
             margin-top: 5px;
         }
         .sub-title { font-size: 0.9rem; opacity: 0.8; font-weight: 300; }
 
-        /* 메인 콘텐츠 */
+        /* 메인 콘텐츠 - 중앙 정렬 대시보드 형태 */
         main {
             flex: 1;
-            max-width: 1000px;
-            margin: 40px auto;
+            max-width: 900px;
+            margin: 0 auto;
             padding: 0 20px;
             width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* 14~16인치 화면 기준 완벽한 세로 중앙 정렬 */
         }
 
-        /* 그리드 메뉴 */
+        /* 그리드 메뉴 (정확히 2x2 배치로 고정) */
         .menu-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 25px;
-            margin-bottom: 50px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px; /* 카드 간격 최적화 */
         }
 
         /* 카드 스타일 */
         .card {
             background: white;
-            border-radius: 15px;
-            padding: 30px;
+            border-radius: 12px;
+            padding: 35px 25px; /* 내용물이 빠진 만큼 카드 볼륨업 */
             text-decoration: none;
             color: #333;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
@@ -100,8 +104,6 @@
             align-items: center;
             text-align: center;
             border: 1px solid #e1e4e8;
-            position: relative;
-            overflow: hidden;
             cursor: pointer;
         }
 
@@ -112,15 +114,15 @@
         }
 
         .icon-box {
-            width: 70px;
-            height: 70px;
+            width: 65px;
+            height: 65px;
             background-color: #f0f4f8;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 20px;
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             color: #0b2a4a;
             transition: 0.3s;
         }
@@ -130,103 +132,27 @@
         }
 
         .card-title {
-            font-size: 1.25rem;
+            font-size: 1.3rem;
             font-weight: 700;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             color: #0b2a4a;
         }
 
         .card-desc {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             color: #666;
             line-height: 1.5;
             word-break: keep-all;
         }
 
-        /* 준비중 카드 */
-        .card.disabled {
-            opacity: 0.6;
-            cursor: default;
-            background-color: #f9f9f9;
-        }
-        .card.disabled:hover {
-            transform: none;
-            box-shadow: none;
-            border-color: #e1e4e8;
-        }
-        .card.disabled .icon-box {
-            background-color: #eee;
-            color: #aaa;
-        }
-
-        /* 유지보수 섹션 */
-        .maintenance-section {
-            background-color: white;
-            border-radius: 12px;
-            border: 1px solid #ddd;
-            overflow: hidden;
-        }
-        
-        details { padding: 10px; }
-        
-        summary {
-            cursor: pointer;
-            padding: 15px;
-            font-weight: bold;
-            color: #555;
-            list-style: none;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        summary::-webkit-details-marker { display: none; }
-        summary::after {
-            content: '\f078';
-            font-family: "Font Awesome 5 Free"; 
-            font-weight: 900;
-            transition: 0.3s;
-        }
-        details[open] summary::after { transform: rotate(180deg); }
-
-        .maintenance-content {
-            padding: 20px;
-            border-top: 1px solid #eee;
-            background-color: #fafafa;
-            font-size: 0.95rem;
-            line-height: 1.7;
-        }
-
-        .step-box {
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px dashed #ccc;
-        }
-        .step-box:last-child { border-bottom: none; }
-        
-        .step-title {
-            font-weight: bold;
-            color: #c5a059;
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        code {
-            background: #eee;
-            padding: 2px 5px;
-            border-radius: 4px;
-            font-family: monospace;
-            color: #d63384;
-        }
-
         /* === 푸터 스타일 === */
         footer {
             background-color: #e9ecef;
-            color: #495057;
+            color: #868e96;
             text-align: center;
-            padding: 30px 20px;
+            padding: 20px;
             font-size: 0.85rem;
-            margin-top: auto;
-            line-height: 1.6;
+            flex-shrink: 0;
         }
     </style>
 </head>
@@ -259,66 +185,17 @@
     <main>
         <div class="menu-grid" id="menu-grid">
             </div>
-
-        <section class="maintenance-section">
-            <details>
-                <summary><i class="fas fa-wrench"></i> &nbsp; 사이트 고장 시 / 데이터 수정 방법 (클릭)</summary>
-                <div class="maintenance-content">
-                    <div class="step-box">
-                        <span class="step-title">TIP. 메뉴 추가/수정 방법</span>
-                        1. <strong>index.html</strong> 파일을 클릭하고, 우측 상단의 <strong>연필 아이콘(✏️)</strong>을 누릅니다.<br>
-                        2. 맨 아래쪽 <code>&lt;script&gt;</code> 태그 안에 있는 <code>menuList</code> 목록을 찾으세요.<br>
-                        3. 원하는 내용을 복사해서 한 줄 추가하면 자동으로 버튼이 생깁니다.<br>
-                        4. 우측 상단의 <strong>Commit changes</strong> 초록색 버튼을 누르면 저장됩니다.
-                    </div>
-                    <div class="step-box">
-                        <span class="step-title">TIP. FAQ 검색기 내용 수정하기 (코드 수정 X)</span>
-                        1. 코드를 건드릴 필요 없이, <strong>연동된 구글 스프레드시트</strong>만 수정하세요.<br>
-                        2. 엑셀 내용을 바꾸면 홈페이지 검색 결과도 자동으로 바뀝니다.<br>
-                        (단, 질문/답변 데이터가 로딩되지 않을 때만 아래 방법을 사용하세요.)
-                    </div>
-                    <div class="step-box">
-                        <span class="step-title">수정 시 STEP 1. 수정할 파일 열기</span>
-                        1. 깃허브 저장소(Repository) 페이지에 접속합니다.<br>
-                        2. 파일 목록에서 수정하고 싶은 파일(예: <code>timetable.html</code>)을 클릭합니다.<br>
-                        3. 파일 내용이 보이면, 우측 상단에 있는 작은 <strong>연필 아이콘(Edit file)</strong>을 클릭합니다.<br>
-                        (이제 메모장처럼 코드를 직접 고칠 수 있는 상태가 됩니다.)
-                    </div>
-                    <div class="step-box">
-                        <span class="step-title">수정 시 STEP 2. AI에게 수정 요청하기</span>
-                        1. <strong>ChatGPT</strong>나 <strong>Gemini</strong>를 켭니다.<br>
-                        2. 수정하고 싶은 파일의 코드를 전체 복사(Ctrl+A, Ctrl+C)해서 채팅창에 붙여넣습니다.<br>
-                        3. 자연어로 요청합니다.<br>
-                        (예: <em>"시간표 디자인을 좀 더 밝게 바꿔줘", "오타가 났는데 고쳐줘"</em>)
-                    </div>
-                    <div class="step-box">
-                        <span class="step-title">수정 시 STEP 3. 적용하기 (Commit)</span>
-                        1. AI가 고쳐준 코드를 깃허브 편집 화면에 <strong>덮어쓰기(붙여넣기)</strong> 합니다.<br>
-                        2. 화면 우측 상단의 초록색 <strong>[Commit changes...]</strong> 버튼을 누릅니다.<br>
-                        3. 작은 팝업창이 뜨면 다시 한 번 초록색 <strong>[Commit changes]</strong> 버튼을 누릅니다.<br>
-                        4. 끝! 약 1~2분 뒤에 실제 사이트에 반영됩니다.
-                    </div>
-                </div>
-            </details>
-        </section>
     </main>
 
     <footer>
-        <p>Copyright © <span id="year"></span> Dept. of Persian & Iranian Studies, HUFS. All rights reserved.</p>
-        <p>문의: E-mail. hufsiran@gmail.com, Tel. 02-2173-2303, Office. 본관320호</p>
+        <p>Copyright © <span id="year"></span> Dept. of Persian and Iranian Studies, HUFS. All rights reserved.</p>
     </footer>
 
     <script>
         // =========================================================================
-        // [설정] 메뉴 목록 (여기만 수정하면 버튼이 자동으로 생깁니다!)
+        // [설정] 핵심 메뉴 4가지 (2x2 그리드 배열)
         // =========================================================================
         const menuList = [
-            {
-                title: "학교/학과 FAQ(준비중)",
-                desc: "이메일/전화 문의 답변 시 참고",
-                icon: "fa-search",
-                link: "search.html"
-            },
             {
                 title: "근무공정 생성",
                 desc: "이번 달 근무 인정 시간 계산 및<br>근무 엑셀파일 자동 생성",
@@ -339,72 +216,31 @@
             },
             {
                 title: "스마트 출석부",
-                desc: "학과 행사 시 필요한 출석부 자동 생성",
-                icon: "fa-clipboard-user", // FontAwesome 아이콘
+                desc: "학과 행사 시 필요한<br>엑셀 출석부 자동 생성",
+                icon: "fa-clipboard-user",
                 link: "attendance.html"
-            },
-            {
-                title: "회의록 생성기",
-                desc: "학과 업무 관련 회의 시 간단 회의록 작성",
-                icon: "fa-file-signature",
-                link: "minutes.html"
-            },
-            {
-                title: "전공 시간표 생성기",
-                desc: "학과 강의 시간표 생성",
-                icon: "fa-calendar-days",
-                link: "timetable.html"
-            },
-            {
-                title: "조교업무 매뉴얼",
-                desc: "신입 조교를 위한 업무 가이드",
-                icon: "fa-book",
-                link: "manual.html"
-            },
-            {
-                title: "조교용 생존 페르시아어",
-                desc: "원어민 교수님 방문 대비<br>페르시아어 사전",
-                icon: "fa-book",
-                link: "farsi.html"
-            }, // <-- 여기에 쉼표가 빠져서 전체 코드가 뻗었던 거임. 수정 완료.
-            {
-                title: "카드뉴스 생성기",
-                desc: "간단 카드뉴스 템플릿",
-                icon: "fa-book",
-                link: "cardnews.html"
             }
         ];
 
         // =========================================================================
-        // [로직] 메뉴 자동 생성 및 기타 기능 (건드리지 마세요)
+        // [로직] 메뉴 자동 생성 및 보안 로직
         // =========================================================================
         
         // 1. 메뉴 렌더링
         const grid = document.getElementById('menu-grid');
         
         menuList.forEach(item => {
-            // 태그 생성 (disabled면 div, 아니면 a)
-            const card = document.createElement(item.disabled ? 'div' : 'a');
-            
-            // 클래스 추가
-            card.className = 'card' + (item.disabled ? ' disabled' : '');
-            
-            // 링크 연결 (비활성화 아닐 때만)
-            if (!item.disabled) {
-                card.href = item.link;
-            }
+            const card = document.createElement('a');
+            card.className = 'card';
+            card.href = item.link;
 
-            // 내용 채우기
             card.innerHTML = `
                 <div class="icon-box"><i class="fas ${item.icon}"></i></div>
                 <h2 class="card-title">${item.title}</h2>
                 <p class="card-desc">${item.desc}</p>
             `;
-
-            // 그리드에 추가
             grid.appendChild(card);
         });
-
 
         // 2. 연도 자동 갱신
         document.getElementById('year').innerText = new Date().getFullYear();

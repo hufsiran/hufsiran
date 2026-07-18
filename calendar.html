@@ -129,6 +129,12 @@
         let bgImage = new Image();
         let isBgLoaded = false;
         
+	const today = new Date();
+        document.getElementById('year').value = today.getFullYear();
+        document.getElementById('month').value = today.getMonth() + 1;
+        
+        document.fonts.ready.then(function() { drawCalendar(); });
+
         document.fonts.ready.then(function() { drawCalendar(); });
 
         document.getElementById('bgInput').addEventListener('change', function(e) {
@@ -212,7 +218,8 @@
             ctx.font = "bold 60px 'Jua'"; 
             ctx.fillText("페르시아어·이란학과", canvas.width / 2, 110);
             ctx.font = "bold 110px 'Jua'"; 
-            ctx.fillText(`${year}년 ${month}월 학사일정`, canvas.width / 2, 230);
+	    const formattedMonth = String(month).padStart(2, '0');
+            ctx.fillText(`${year}년 ${formattedMonth}월 학사일정`, canvas.width / 2, 230);
 
             // 3. 레이아웃
             const marginX = 120;
@@ -340,10 +347,11 @@
             return events;
         }
 
-        function downloadImage() {
+	function downloadImage() {
             const link = document.createElement('a');
             const y = document.getElementById('year').value;
-            const m = document.getElementById('month').value;
+            // [수정된 코드] 파일명에도 0을 붙여서 저장되도록 처리
+            const m = String(document.getElementById('month').value).padStart(2, '0');
             link.download = `페르시아어이란학과_${y}년_${m}월_학사일정표.png`;
             link.href = canvas.toDataURL("image/png", 1.0);
             link.click();

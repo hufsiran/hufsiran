@@ -168,9 +168,13 @@
 
         let globalDataList = [];
 
-        window.onload = function() {
+	window.onload = function() {
             const today = new Date();
-            const dateStr = `${today.getFullYear()}.${today.getMonth()+1}.${today.getDate()}`;
+            // 월과 일을 강제로 2자리 문자열로 만들고 빈자리를 0으로 채움
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            
+            const dateStr = `${today.getFullYear()}.${month}.${day}`;
             document.getElementById('eventDate').value = dateStr;
         };
 

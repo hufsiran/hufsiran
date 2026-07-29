@@ -9,6 +9,17 @@
     <title>페르시아어·이란학과 학사일정표 생성기</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <style>
+	@font-face {
+            font-family: 'CookieRun';
+            font-weight: 400;
+            src: url('CookieRun_Font/CookieRun_Regular.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'CookieRun';
+            font-weight: 700;
+            src: url('CookieRun_Font/CookieRun_Bold.ttf') format('truetype');
+        }
+
         body { font-family: 'Jua', 'Malgun Gothic', sans-serif; background-color: #ffffff; padding: 30px; display: flex; gap: 30px; justify-content: center; align-items: flex-start; height: 100vh; overflow-y: auto; }
         
         .control-panel { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); width: 340px; flex-shrink: 0; position: sticky; top: 20px; border: 1px solid #dee2e6; }
@@ -50,6 +61,9 @@
     </style>
 </head>
 <body>
+    <!-- 브라우저에 쿠키런 폰트를 강제 인식시키기 위한 투명 태그 -->
+    <div style="font-family: 'CookieRun'; font-weight: 400; position: absolute; visibility: hidden;">폰트 로딩</div>
+    <div style="font-family: 'CookieRun'; font-weight: 700; position: absolute; visibility: hidden;">폰트 로딩</div>
 
 <a href="index.html" title="메인으로 이동" style="
     position: fixed; 
@@ -212,13 +226,13 @@
                  ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
-            // 2. 제목
+	    // 2. 제목 (Bold)
             ctx.textAlign = "center";
             ctx.fillStyle = "black";
-            ctx.font = "bold 60px 'Jua'"; 
+            ctx.font = "bold 60px 'CookieRun'"; 
             ctx.fillText("페르시아어·이란학과", canvas.width / 2, 110);
-            ctx.font = "bold 110px 'Jua'"; 
-	    const formattedMonth = String(month).padStart(2, '0');
+            ctx.font = "bold 110px 'CookieRun'"; 
+	        const formattedMonth = String(month).padStart(2, '0');
             ctx.fillText(`${year}년 ${formattedMonth}월 학사일정`, canvas.width / 2, 230);
 
             // 3. 레이아웃
@@ -232,8 +246,8 @@
             const cellH = gridHeight / 6; 
             const days = ["일", "월", "화", "수", "목", "금", "토"];
             
-            // 4. 요일 헤더 (토요일 파란색 추가)
-            ctx.font = "bold 55px 'Jua'";
+            // 4. 요일 헤더 (Bold)
+	    ctx.font = "bold 55px 'CookieRun'";
             days.forEach((day, i) => {
                 const headerX = marginX + (i * cellW) + cellW/2;
                 
@@ -285,8 +299,8 @@
                         drawRoundedRect(currentX + 5, currentY + 5, cellW - 10, cellH - 10, 20, "#e9ecef", true);
                     }
 
-                    // 날짜 숫자 색상
-                    ctx.font = "bold 40px 'Jua'";
+                    // 날짜 숫자 색상 (Bold)
+		    ctx.font = "bold 40px 'CookieRun'";
                     ctx.textAlign = "left";
                     
                     if (isSunday || eventData.type === "holiday") ctx.fillStyle = "#ff6b6b"; // 빨강
@@ -301,9 +315,9 @@
                         ctx.fillText("⭐", currentX + cellW - 40, currentY + 50);
                     }
 
-                    // 일정 텍스트 색상
-                    if (eventData.text) {
-                        ctx.font = "26px 'Jua'"; 
+			// 일정 텍스트 색상 및 폰트 (이 부분만 Regular 적용)
+                        if (eventData.text) {
+                        ctx.font = "normal 26px 'CookieRun'";
                         if (eventData.type === "holiday") ctx.fillStyle = "#e03131"; // 빨강
                         else if (eventData.type === "highlight") ctx.fillStyle = "#087f5b"; // 초록 (수정됨)
                         else if (isSaturday) ctx.fillStyle = "#1c7ed6"; // 토요일 파랑

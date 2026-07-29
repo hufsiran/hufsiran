@@ -9,6 +9,17 @@
     <title>페르시아어·이란학과 조교 근무표 생성기</title>
     <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
     <style>
+	@font-face {
+            font-family: 'CookieRun';
+            font-weight: 400;
+            src: url('CookieRun_Font/CookieRun_Regular.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'CookieRun';
+            font-weight: 700;
+            src: url('CookieRun_Font/CookieRun_Bold.ttf') format('truetype');
+        }
+
         body { font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; background-color: #f1f3f5; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
         /* 홈 버튼 추가 */
@@ -135,6 +146,25 @@
         .contact-info { display: flex; justify-content: space-between; font-weight: bold; font-size: 1rem; color: #495057; }
         
         .tip-box { background: #fff9db; padding: 10px; border-radius: 5px; font-size: 0.85rem; color: #495057; margin-bottom: 10px; line-height: 1.5; }
+
+	/* --- 쿠키런 폰트 오버라이드 --- */
+        /* 1. UI 영역: 기존 Jua 폰트를 무력화하고 깔끔한 기본 폰트로 통일 */
+        .main-tab-btn, .guide-title, h2, button, .badge, .tab-btn, .ph-date { 
+            font-family: inherit; 
+        }
+        
+        /* 2. 출력용 A4 영역: 베이스는 쿠키런 Regular(400) */
+        .a4-preview { 
+            font-family: 'CookieRun', sans-serif; 
+            font-weight: 400; 
+        }
+        
+        /* 3. 출력용 A4 내 강조 영역: 쿠키런 Bold(700) 매핑 */
+        .ph-title-2, .schedule-table thead th, .calendar-table th, .pf-title { 
+            font-family: 'CookieRun', sans-serif; 
+            font-weight: 700; 
+            letter-spacing: 0;
+        }
     </style>
 </head>
 <body>

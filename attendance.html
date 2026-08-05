@@ -24,8 +24,9 @@
             background-color: #0b2a4a; color: white; border-radius: 50%;
             display: flex; justify-content: center; align-items: center;
             text-decoration: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            font-size: 24px; z-index: 9999;
+            font-size: 24px; z-index: 9999; transition: 0.3s;
         }
+        .home-btn:hover { transform: scale(1.1); background-color: #1a3b5c; }
 
         /* 입력 패널 (컨트롤 박스) */
         .input-panel {
@@ -45,9 +46,25 @@
             width: 100%; height: 150px; padding: 15px; 
             border: 2px solid #ced4da; border-radius: 10px;
             font-size: 1.1rem; line-height: 1.8; font-family: monospace;
-            background-color: #fff; margin-bottom: 15px;
+            background-color: #fff; margin-bottom: 15px; resize: vertical;
         }
         
+        /* 다이내믹 항목 설정 UI */
+        .col-config-area {
+            background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 10px;
+            padding: 20px; margin-bottom: 20px; text-align: left;
+        }
+        .col-config-title { font-weight: bold; color: #0b2a4a; margin-bottom: 15px; display: block; font-size: 1.1rem; }
+        .col-item { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .col-item input { padding: 8px; border: 1px solid #ced4da; border-radius: 5px; }
+        .col-item .col-name { flex: 2; }
+        .col-item .col-width { flex: 1; min-width: 80px; }
+        .btn-col-action { padding: 8px 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-col-del { background: #ffc9c9; color: #c92a2a; }
+        .btn-col-del:hover { background: #fa5252; color: white; }
+        .btn-col-add { background: #e3f2fd; color: #0b2a4a; margin-top: 5px; width: 100%; }
+        .btn-col-add:hover { background: #74c0fc; color: white; }
+
         /* 버튼 스타일 */
         .btn-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
         .btn {
@@ -73,6 +90,7 @@
             display: flex; 
             flex-direction: column;
             position: relative;
+            box-sizing: border-box;
         }
 
         /* 페이지 번호 */
@@ -110,17 +128,9 @@
         }
         
         .roster-table { width: 100%; border-collapse: collapse; margin-top: 5px; table-layout: fixed; }
-        .roster-table th, .roster-table td { border: 1px solid #333; padding: 6px 5px; text-align: center; vertical-align: middle; }
+        .roster-table th, .roster-table td { border: 1px solid #333; padding: 6px 5px; text-align: center; vertical-align: middle; word-wrap: break-word; }
         .roster-table th { background-color: #f1f3f5; height: 35px; font-weight: bold; font-size: 1rem; }
         .roster-table td { height: 40px; font-size: 1rem; }
-        
-        /* 컬럼 너비 조정 */
-        .col-del { width: 60px; } 
-        .col-no { width: 40px; }
-        .col-dept { width: 160px; }
-        .col-id { width: 110px; }
-        .col-name { width: 100px; }
-        .col-sign { } 
 
         /* 출력 영역 컨테이너 */
         #outputContainer { display: none; flex-direction: column; align-items: center; width: 100%; }
@@ -129,30 +139,39 @@
 </head>
 <body>
 
-    <a href="index.html" class="home-btn">🏠</a>
+    <a href="index.html" class="home-btn" title="포털로 돌아가기">🏠</a>
 
     <div class="input-panel">
-        <h2 style="margin-bottom:15px; color:#0b2a4a;">✍️ 스마트 출석부</h2>
+        <h2 style="margin-bottom:15px; color:#0b2a4a;">✍️ 스마트 출석부 (자유 양식)</h2>
         
         <p style="text-align:left; background:#e7f5ff; padding:15px; border-radius:10px; margin-bottom:20px; color:#084298;">
-            <strong>[1. 입력]</strong> 행사 정보와 명단을 입력하세요.<br>
-            ※ 타과생은 학과명을 같이 적으세요. (예: <strong>경영학과</strong> 20240001 홍길동)<br>
-            ※ 하단에 <strong>A4 용지 모양</strong>으로 미리보기가 생성됩니다.<br>
-            <strong>[2. 인쇄]</strong> '명단 적용' 후 '인쇄하기'를 누르세요.
+            <strong>[1. 양식 세팅]</strong> 표에 들어갈 항목과 너비(px)를 원하는 대로 추가/삭제하세요.<br>
+            <strong>[2. 명단 입력]</strong> 엑셀에서 명단을 드래그하여 복사한 뒤 텍스트 박스에 붙여넣으세요. (탭 기준 자동 분리)<br>
+            <strong>[3. 인쇄]</strong> '명단 적용' 후 '인쇄하기'를 누르세요.
         </p>
 
+        <!-- 행사 정보 -->
         <div class="info-row">
             <input type="text" id="eventName" class="info-input" placeholder="행사명 (예: 이란어과 말하기 대회)">
             <input type="text" id="eventDate" class="info-input" placeholder="일시">
             <input type="text" id="eventPlace" class="info-input" placeholder="장소 (예: 본관 320호)">
         </div>
 
-        <textarea id="inputText" placeholder="명단을 입력하세요 (예: 20260001 김철수)"></textarea>
+        <!-- 다이내믹 항목(Column) 설정 -->
+        <div class="col-config-area">
+            <span class="col-config-title">📊 표 항목(Column) 설정 <span style="font-size:0.85rem; color:#666; font-weight:normal;">(너비를 비우면 남은 공간을 자동 분배합니다)</span></span>
+            <div id="colConfigList">
+                <!-- 자바스크립트로 기본 항목 렌더링 -->
+            </div>
+            <button class="btn-col-action btn-col-add" onclick="addColConfig()">+ 항목 추가</button>
+        </div>
+
+        <textarea id="inputText" placeholder="엑셀 명단을 복사해서 붙여넣으세요. (이름, 학번, 소속 등 설정한 항목 순서대로 탭 분리)"></textarea>
 
         <div class="btn-group">
             <button class="btn btn-clear" onclick="clearText()">초기화</button>
-            <button class="btn btn-gen" onclick="parseAndRender()">🔄 1. 명단 적용 (A4 생성)</button>
-            <button class="btn btn-add-blank" onclick="addBlankData(5)">➕ 2. 빈칸 5줄 추가</button>
+            <button class="btn btn-gen" onclick="parseAndRender()">🔄 명단 적용 (A4 생성)</button>
+            <button class="btn btn-add-blank" onclick="addBlankData(5)">➕ 빈칸 5줄 추가</button>
         </div>
         
         <div class="btn-group" style="margin-top: 15px; border-top: 1px dashed #ced4da; padding-top: 15px;">
@@ -167,89 +186,108 @@
         const ROWS_PER_PAGE = 20;
 
         let globalDataList = [];
+        
+        // 커스텀 컬럼 기본 데이터
+        let columnsConfig = [
+            { name: "학과/전공", width: "160px" },
+            { name: "학번", width: "110px" },
+            { name: "성명", width: "100px" },
+            { name: "서명", width: "auto" }
+        ];
 
-	window.onload = function() {
+        window.onload = function() {
             const today = new Date();
-            // 월과 일을 강제로 2자리 문자열로 만들고 빈자리를 0으로 채움
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
+            document.getElementById('eventDate').value = `${today.getFullYear()}.${month}.${day}`;
             
-            const dateStr = `${today.getFullYear()}.${month}.${day}`;
-            document.getElementById('eventDate').value = dateStr;
+            renderColConfigUI();
         };
 
-        // [수정] 인쇄 직전에만 제목을 바꾸는 함수
+        // --- 다이내믹 컬럼 UI 컨트롤 ---
+        function renderColConfigUI() {
+            const listDiv = document.getElementById('colConfigList');
+            listDiv.innerHTML = '';
+            
+            columnsConfig.forEach((col, idx) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'col-item';
+                itemDiv.innerHTML = `
+                    <input type="text" class="col-name" value="${col.name}" placeholder="항목명 (예: 연락처)" onchange="updateColConfig(${idx}, 'name', this.value)">
+                    <input type="text" class="col-width" value="${col.width}" placeholder="너비 (예: 100px)" onchange="updateColConfig(${idx}, 'width', this.value)">
+                    <button class="btn-col-action btn-col-del" onclick="delColConfig(${idx})">삭제</button>
+                `;
+                listDiv.appendChild(itemDiv);
+            });
+        }
+
+        function updateColConfig(index, key, value) {
+            columnsConfig[index][key] = value;
+        }
+
+        function addColConfig() {
+            columnsConfig.push({ name: "새 항목", width: "100px" });
+            renderColConfigUI();
+        }
+
+        function delColConfig(index) {
+            columnsConfig.splice(index, 1);
+            renderColConfigUI();
+        }
+
+
+        // --- 인쇄 ---
         function printPage() {
             const eventName = document.getElementById('eventName').value.trim();
-            if(eventName) {
-                // 행사명이 있으면 잠시 문서 제목을 바꿈 (파일명을 위해)
-                document.title = eventName;
-            } else {
-                document.title = "스마트 출석부";
-            }
+            document.title = eventName ? eventName : "스마트 출석부";
             window.print();
         }
 
-        // [1] 텍스트 -> 데이터 파싱 후 그리기
+        // --- 데이터 파싱 (엑셀 TSV 기반) ---
         function parseAndRender() {
             const raw = document.getElementById('inputText').value;
-            globalDataList = []; // 초기화
+            globalDataList = [];
 
             if(raw.trim()) {
                 const lines = raw.split('\n');
                 lines.forEach(line => {
                     if(!line.trim()) return;
                     
-                    let dept = "페르시아어·이란학과"; 
-                    let id = "";
-                    let name = "";
-                    let tempLine = line;
-
-                    // 학번 추출
-                    const idMatch = tempLine.match(/\d{5,}/);
-                    if(idMatch) {
-                        id = idMatch[0];
-                        tempLine = tempLine.replace(id, ""); 
+                    let cols = line.split('\t'); // 엑셀 복붙은 탭으로 구분됨
+                    
+                    // 탭이 하나도 없고, 스페이스바가 있다면 (수동 입력 대비 Fallback)
+                    if (cols.length === 1 && line.includes(' ')) {
+                        cols = line.trim().split(/\s+/);
                     }
 
-                    // 학과명 추출
-                    const deptMatch = tempLine.match(/[가-힣]+(학과|어과|전공)/);
-                    if(deptMatch) {
-                        dept = deptMatch[0];
-                        tempLine = tempLine.replace(dept, ""); 
+                    // 컬럼 개수보다 데이터가 부족하면 빈 문자열로 채움
+                    let rowData = [];
+                    for(let i=0; i < columnsConfig.length; i++) {
+                        rowData.push(cols[i] ? cols[i].trim() : "");
                     }
-
-                    // 이름 추출
-                    const nameMatch = tempLine.match(/[가-힣a-zA-Z]+/);
-                    if(nameMatch) {
-                        name = nameMatch[0];
-                    }
-
-                    if(!id && !name) name = line.trim();
-
-                    globalDataList.push({ dept, id, name });
+                    globalDataList.push(rowData);
                 });
             }
             
-            renderPages(); // 화면에 그리기
+            renderPages(); 
         }
 
-        // [2] 빈칸 데이터 추가
+        // --- 빈칸 추가 ---
         function addBlankData(count) {
             for(let i=0; i<count; i++) {
-                // 학과도 공란으로 추가
-                globalDataList.push({ dept: "", id: "", name: "" });
+                let blankRow = new Array(columnsConfig.length).fill("");
+                globalDataList.push(blankRow);
             }
             renderPages(); 
         }
 
-        // [3] 데이터 삭제
+        // --- 개별 데이터 삭제 ---
         function deleteItem(index) {
             globalDataList.splice(index, 1); 
             renderPages(); 
         }
 
-        // 페이지(A4) 렌더링 함수
+        // --- 페이지(A4) 렌더링 엔진 ---
         function renderPages() {
             const container = document.getElementById('outputContainer');
             container.innerHTML = "";
@@ -259,8 +297,14 @@
             const date = document.getElementById('eventDate').value;
             const place = document.getElementById('eventPlace').value;
 
-            // 페이지 수 계산
             const totalPages = Math.ceil(globalDataList.length / ROWS_PER_PAGE) || 1;
+
+            // 컬럼 헤더 HTML 생성 (고정 관리+No 열 추가)
+            let thHTML = `<th class="no-print" style="width:50px;">관리</th><th style="width:40px;">No</th>`;
+            columnsConfig.forEach(col => {
+                let wStyle = col.width ? `style="width:${col.width};"` : '';
+                thHTML += `<th ${wStyle}>${col.name}</th>`;
+            });
 
             for (let page = 0; page < totalPages; page++) {
                 const start = page * ROWS_PER_PAGE;
@@ -270,7 +314,7 @@
                 const sheet = document.createElement('div');
                 sheet.className = 'sheet';
 
-                // 헤더 생성
+                // 헤더 
                 let headerHTML = "";
                 if (page === 0) {
                     headerHTML = `
@@ -288,36 +332,26 @@
                         </div>`;
                 }
 
-                // 테이블 생성
+                // 데이터 행(Row) 생성
                 let rowsHTML = "";
-                pageData.forEach((item, idx) => {
+                pageData.forEach((rowArray, idx) => {
                     const realIndex = start + idx; 
-                    rowsHTML += `
-                        <tr>
-                            <td class="no-print">
-                                <button class="row-del-btn" onclick="deleteItem(${realIndex})">삭제</button>
-                            </td>
-                            <td>${realIndex + 1}</td>
-                            <td>${item.dept}</td>
-                            <td>${item.id}</td>
-                            <td style="font-weight:bold;">${item.name}</td>
-                            <td></td>
-                        </tr>
-                    `;
+                    
+                    let tdHTML = `<td class="no-print"><button class="row-del-btn" onclick="deleteItem(${realIndex})">삭제</button></td>`;
+                    tdHTML += `<td>${realIndex + 1}</td>`; // No 자동 부여
+                    
+                    rowArray.forEach((cellData) => {
+                        tdHTML += `<td>${cellData}</td>`;
+                    });
+
+                    rowsHTML += `<tr>${tdHTML}</tr>`;
                 });
 
                 sheet.innerHTML = `
                     ${headerHTML}
                     <table class="roster-table">
                         <thead>
-                            <tr>
-                                <th class="col-del no-print">관리</th> 
-                                <th class="col-no">No</th>
-                                <th class="col-dept">학과/전공</th>
-                                <th class="col-id">학번</th>
-                                <th class="col-name">성명</th>
-                                <th class="col-sign">서명</th>
-                            </tr>
+                            <tr>${thHTML}</tr>
                         </thead>
                         <tbody>
                             ${rowsHTML}
@@ -330,20 +364,17 @@
             }
         }
 
-        // 초기화
+        // --- 초기화 ---
         function clearText() {
             if(confirm('모든 입력 내용을 지우시겠습니까?')) {
                 document.getElementById('inputText').value = '';
                 document.getElementById('eventName').value = '';
                 document.getElementById('eventPlace').value = '';
-                
-                // [수정] 제목도 기본값으로 초기화
                 document.title = "스마트 출석부";
                 
                 globalDataList = [];
                 renderPages();
                 
-                // 화면 초기화 시 결과창 숨김
                 document.getElementById('outputContainer').style.display = 'none';
             }
         }
